@@ -61,7 +61,7 @@ class BMScraper(FileNameUtils):
         self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.0 by /u/marminatoror'}
         
     def _emote_post_preferance(self):
-        '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.''' 
+        '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.'''
         
         # We push all the numbered names back. They are generally not very descriptive.
         for emote in self.emotes:
@@ -104,18 +104,21 @@ class BMScraper(FileNameUtils):
                                 if len(emote['names']) == 0:
                                     self.emotes.remove(emote)
 
-
     def _fetch_css(self):
         logger.debug("Fetching css using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
-
+        
         for subreddit in self.subreddits:
-            workpool.put(DownloadJob(self._requests,
-                                     'https://pay.reddit.com/r/{}/stylesheet'.format(subreddit),
-                                     retry=5,
-                                     rate_limit_lock=self.rate_limit_lock,
-                                     callback=self._callback_fetch_stylesheet,
-                                     **{'subreddit': subreddit}))
+            try:
+                with open( path.join('css', subreddit) + '.css', 'r' ) as f:
+                    self._process_stylesheet(f.read().decode('utf-8'), subreddit)
+            except:
+                workpool.put(DownloadJob(self._requests,
+                                         'https://pay.reddit.com/r/{}/stylesheet'.format(subreddit),
+                                         retry=5,
+                                         rate_limit_lock=self.rate_limit_lock,
+                                         callback=self._callback_fetch_stylesheet,
+                                         **{'subreddit': subreddit}))
 
         workpool.shutdown()
         workpool.join()
@@ -132,7 +135,7 @@ class BMScraper(FileNameUtils):
                     continue
 
                 file_path = self.get_file_path(image_url, rootdir=self.cache_dir)
-                if not os.path.isfile(file_path):
+                if not path.isfile(file_path):
                     workpool.put(DownloadJob(self._requests,
                                              image_url,
                                              retry=5,
@@ -221,20 +224,13 @@ class BMScraper(FileNameUtils):
                             rules[name] = val
                             emotes_staging[match.group(1)].update(rules)
         return emotes_staging
-
-    def _callback_fetch_stylesheet(self, response, subreddit=None):
-        if not response:
-            logger.error("Failed to fetch css for {}".format(subreddit))
-            return
-
-        if response.status_code != 200:
-            logger.error("Failed to fetch css for {} (Status {})".format(subreddit, response.status_code))
-            return
-
-        emotes_staging = self._parse_css(response.text)
+    
+    def _process_stylesheet(self, content, subreddit=None):
+        
+        emotes_staging = self._parse_css(content)
         if not emotes_staging:
             return
-
+        
         key_func = lambda e: e[1]
         for emote, group in itertools.groupby(sorted(emotes_staging.iteritems(), key=key_func), key_func):
             emote['names'] = [a[0].encode('ascii', 'ignore') for a in group]
@@ -246,6 +242,7 @@ class BMScraper(FileNameUtils):
             
             for name in emote['names']:
                 meta_data = next((x for x in self.emote_info if x['name'] == name), None)
+
 
                 if meta_data:
                     for key, val in meta_data.iteritems():
@@ -291,6 +288,22 @@ class BMScraper(FileNameUtils):
                     self.emotes.append(emote)
             else:
                 logger.warn('Discarding emotes {}'.format(emote['names'][0]))
+    
+    def _callback_fetch_stylesheet(self, response, subreddit=None):
+        if not response:
+            logger.error("Failed to fetch css for {}".format(subreddit))
+            return
+
+        if response.status_code != 200:
+            logger.error("Failed to fetch css for {} (Status {})".format(subreddit, response.status_code))
+            return
+        
+        filename = response.url.split('/').pop()
+        text = response.text.encode('utf-8')
+        with open( path.join('css', subreddit) + '.css', 'w' ) as f:
+            f.write( text )
+        
+        self._process_stylesheet(text, subreddit)
 
     def _callback_download_image(self, response, image_path=None):
         if not image_path:
@@ -300,8 +313,8 @@ class BMScraper(FileNameUtils):
         if not data:
             return
 
-        image_dir = os.path.dirname(image_path)
-        if not os.path.exists(image_dir):
+        image_dir = path.dirname(image_path)
+        if not path.exists(image_dir):
             try:
                 os.makedirs(image_dir)
             except OSError:
