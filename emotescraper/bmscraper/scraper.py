@@ -50,7 +50,7 @@ class BMScraper(FileNameUtils):
         self.nsfw_subreddits = []
         self.emote_info = []
         self.tags_data = {}
-        self.cache_dir = '../images'
+        self.cache_dir = 'cache'
         self.workers = cpu_count()
         self.processor_factory = processor_factory
         self.rate_limit_lock = None
@@ -110,7 +110,8 @@ class BMScraper(FileNameUtils):
         
         for subreddit in self.subreddits:
             try:
-                with open( path.join('css', subreddit) + '.css', 'r' ) as f:
+                css_subreddit_path = path.join('css', subreddit) + '.css'
+                with open( css_subreddit_path, 'r' ) as f:
                     self._process_stylesheet(f.read().decode('utf-8'), subreddit)
             except:
                 workpool.put(DownloadJob(self._requests,
@@ -300,8 +301,14 @@ class BMScraper(FileNameUtils):
         
         filename = response.url.split('/').pop()
         text = response.text.encode('utf-8')
-        with open( path.join('css', subreddit) + '.css', 'w' ) as f:
+        
+        css_cache_file_path = self.get_file_path(response.url, rootdir=self.cache_dir )
+        css_subreddit_path = path.join('css', subreddit) + '.css'
+        
+        with open( css_cache_file_path, 'w' ) as f:
             f.write( text )
+        
+        os.symlink(os.path.relpath(css_cache_file_path, 'css/'), css_subreddit_path );
         
         self._process_stylesheet(text, subreddit)
 
