@@ -112,7 +112,7 @@ class BMScraper(FileNameUtils):
             try:
                 css_subreddit_path = path.join('css', subreddit) + '.css'
                 with open( css_subreddit_path, 'r' ) as f:
-                    self._process_stylesheet(f.read().decode('utf-8'), subreddit)
+                    pass
             except:
                 workpool.put(DownloadJob(self._requests,
                                          'https://pay.reddit.com/r/{}/stylesheet'.format(subreddit),
@@ -172,7 +172,9 @@ class BMScraper(FileNameUtils):
             #self._headers['cookie'] = cookie[:cookie.index(';')]
 
         self._fetch_css()
-
+        
+        self._process_stylesheets()
+        
         self._dedupe_emotes()
         
         self._emote_post_preferance()
@@ -225,6 +227,12 @@ class BMScraper(FileNameUtils):
                             rules[name] = val
                             emotes_staging[match.group(1)].update(rules)
         return emotes_staging
+    
+    def _process_stylesheets(self):
+        for subreddit in self.subreddits:
+            css_subreddit_path = path.join('css', subreddit) + '.css'
+            with open( css_subreddit_path, 'r' ) as f:
+                self._process_stylesheet(f.read().decode('utf-8'), subreddit)
     
     def _process_stylesheet(self, content, subreddit=None):
         
@@ -309,8 +317,6 @@ class BMScraper(FileNameUtils):
             f.write( text )
         
         os.symlink(os.path.relpath(css_cache_file_path, 'css/'), css_subreddit_path );
-        
-        self._process_stylesheet(text, subreddit)
 
     def _callback_download_image(self, response, image_path=None):
         if not image_path:
