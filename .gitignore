@@ -9,7 +9,6 @@ nosetests.xml
 
 Thumbs.db
 
-images/
 single_emotes/
 
 js/berrymotes_data.js
