@@ -178,6 +178,10 @@ subreddits = [
     "zponymotes",
 ]
 
+subreddits = subreddits + [
+    'Mylittleayrl',
+]
+
 emote_info = [
     {'name': 'thesafewordistoast', 'com': 'bt'},
     {'name': 'toastdeib', 'com': 'bt'},
