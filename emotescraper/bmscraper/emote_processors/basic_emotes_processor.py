@@ -74,6 +74,10 @@ class BasicEmotesProcessor(AbstractEmotesProcessor, FileNameUtils):
         self.image = Image.open(StringIO(self.image_data))
 
     def extract_single_image(self, emote, image):
+    
+        img_width = image.size[0]
+        img_height = image.size[1]
+        
         x = 0
         y = 0
         width = emote['width']
@@ -85,6 +89,9 @@ class BasicEmotesProcessor(AbstractEmotesProcessor, FileNameUtils):
             if percentage:
                 x = width * x / 100
                 y = height * y / 100
+            else:
+                x = x % img_width
+                y = y % img_height
 
         return image.crop((x, y, x + width, y + height))
 
