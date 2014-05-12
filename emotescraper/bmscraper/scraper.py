@@ -75,7 +75,7 @@ class BMScraper(FileNameUtils):
                 else:
                     descriptive_names.append(name)
             emote['names'] = descriptive_names + numbered_names
-        
+    
         # We push all the names containing slashes back.
         for emote in self.emotes:
             long_names = []
@@ -150,8 +150,8 @@ class BMScraper(FileNameUtils):
                     
                     distance = puzzle.get_distance_from_cvec(vector, other_vector)
                     if( distance < 0.05 ):
-                        self.merge_emotes(emote, other_emote)
-                        duplicates.append(other_emote)
+                        self.merge_emotes(other_emote, emote)
+                        duplicates.append(emote)
                 processed_emotes.append( (emote, vector) )
             
         self.emotes = filter(lambda emote: emote not in duplicates, self.emotes)
