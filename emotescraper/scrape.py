@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # --------------------------------------------------------------------
 #
 # Copyright (C) 2013 Marminator <cody_y@shaw.ca>
