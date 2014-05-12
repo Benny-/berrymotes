@@ -27,12 +27,14 @@ from filenameutils import FileNameUtils
 from multiprocessing import cpu_count
 from dateutil import parser
 import re
+import pypuzzle
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 re_numbers = re.compile(r"\d+")
+re_slash = re.compile(r"/")
 
 def _remove_duplicates(seq):
     '''https://stackoverflow.com/questions/480214/how-do-you-remove-duplicates-from-a-list-in-python-whilst-preserving-order'''
@@ -73,6 +75,21 @@ class BMScraper(FileNameUtils):
                 else:
                     descriptive_names.append(name)
             emote['names'] = descriptive_names + numbered_names
+        
+        # We push all the names containing slashes back.
+        for emote in self.emotes:
+            long_names = []
+            descriptive_names = []
+            for name in emote['names']:
+                if len(re_slash.findall(name)) > 0:
+                    long_names.append(name)
+                else:
+                    descriptive_names.append(name)
+            emote['names'] = descriptive_names + long_names
+    
+    def merge_emotes(self, keeper, goner):
+        keeper['names'] = keeper['names'] + goner['names']
+        keeper['names'] = _remove_duplicates(keeper['names'])
     
     def _dedupe_emotes(self):
         for subreddit in self.subreddits:
@@ -92,8 +109,7 @@ class BMScraper(FileNameUtils):
                         emote.get('height') == subreddit_emote.get('height') and
                         emote.get('width') == subreddit_emote.get('width') ):
                         
-                        subreddit_emote['names'] = subreddit_emote['names'] + emote['names']
-                        _remove_duplicates(subreddit_emote['names'])
+                        self.merge_emotes(subreddit_emote, emote)
                         self.emotes.remove(emote)
                     else:
                         # Remove duplicate names. The subreddit scraping order will determine which emote keeps there name.
@@ -104,6 +120,42 @@ class BMScraper(FileNameUtils):
                                 if len(emote['names']) == 0:
                                     self.emotes.remove(emote)
 
+    def _visually_dedupe_emotes(self):
+        processed_emotes = []
+        duplicates = []
+        puzzle = pypuzzle.Puzzle()
+        
+        for subreddit in self.subreddits:
+            subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
+            
+            logger.info('Beginning to visually dedupe emotes in subreddit '+subreddit)
+            for emote in subreddit_emotes:
+                
+                if emote in duplicates:
+                    continue
+                
+                # Ignore apng urls as they sometime start with a black frame.
+                # We only check the first frame and thus they are visually the same as any other black picture.
+                if 'apng_url' in emote:
+                    continue
+                
+                # filename points to a emote's image. It is never a sprite map.
+                filename = self.processor_factory.single_emotes_filename.format(emote['sr'], os.path.join( *(max(emote['names'], key=len).split('/')) ) )
+                vector = puzzle.get_cvec_from_file( filename )
+                
+                for other_emote, other_vector in processed_emotes:
+                    
+                    if other_emote in duplicates:
+                        continue
+                    
+                    distance = puzzle.get_distance_from_cvec(vector, other_vector)
+                    if( distance < 0.05 ):
+                        self.merge_emotes(emote, other_emote)
+                        duplicates.append(other_emote)
+                processed_emotes.append( (emote, vector) )
+            
+        self.emotes = filter(lambda emote: emote not in duplicates, self.emotes)
+        
     def _fetch_css(self):
         logger.debug("Fetching css using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
@@ -170,19 +222,21 @@ class BMScraper(FileNameUtils):
             response = self._requests.post('http://www.reddit.com/api/login', body)
             #cookie = response.headers['set-cookie']
             #self._headers['cookie'] = cookie[:cookie.index(';')]
-
+        
         self._fetch_css()
         
         self._process_stylesheets()
         
         self._dedupe_emotes()
         
+        self._download_images()
+        
+        self._process_emotes()
+        
+        self._visually_dedupe_emotes()
+        
         self._emote_post_preferance()
         
-        self._download_images()
-
-        self._process_emotes()
-
         logger.info('All Done')
 
     def _parse_css(self, data):
@@ -229,10 +283,18 @@ class BMScraper(FileNameUtils):
         return emotes_staging
     
     def _process_stylesheets(self):
+        
         for subreddit in self.subreddits:
+            content = None
             css_subreddit_path = path.join('css', subreddit) + '.css'
-            with open( css_subreddit_path, 'r' ) as f:
-                self._process_stylesheet(f.read().decode('utf-8'), subreddit)
+            
+            try:
+                with open( css_subreddit_path, 'r' ) as f:
+                    content = f.read().decode('utf-8')
+                    self._process_stylesheet(content, subreddit)
+            except Exception as ex:
+                logger.warn('Not parsing stylesheet for ' + subreddit + ": " + str(ex))
+            
     
     def _process_stylesheet(self, content, subreddit=None):
         
