@@ -89,9 +89,8 @@ class BasicEmotesProcessor(AbstractEmotesProcessor, FileNameUtils):
             if percentage:
                 x = width * x / 100
                 y = height * y / 100
-            else:
-                x = x % img_width
-                y = y % img_height
+            x = x % img_width
+            y = y % img_height
 
         return image.crop((x, y, x + width, y + height))
 
