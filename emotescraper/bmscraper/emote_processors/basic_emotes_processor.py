@@ -24,22 +24,19 @@ logger = logging.getLogger(__name__)
 
 
 class BasicEmotesProcessorFactory(AbstractEmotesProcessorFactory):
-    def __init__(self, single_emotes_filename=None):
+    def __init__(self):
         super(BasicEmotesProcessorFactory, self).__init__()
-        self.single_emotes_filename = single_emotes_filename
 
     def new_processor(self, scraper=None, image_url=None, group=None):
         return BasicEmotesProcessor(scraper=scraper,
                                     image_url=image_url,
                                     group=group,
-                                    single_emotes_filename=self.single_emotes_filename)
+                                    )
 
 
 class BasicEmotesProcessor(AbstractEmotesProcessor, FileNameUtils):
-    def __init__(self, scraper=None, image_url=None, group=None, single_emotes_filename=None):
+    def __init__(self, scraper=None, image_url=None, group=None):
         AbstractEmotesProcessor.__init__(self, scraper=scraper, image_url=image_url, group=group)
-
-        self.single_emotes_filename = single_emotes_filename
         self.image_data = None
         self.image = None
 
@@ -49,7 +46,7 @@ class BasicEmotesProcessor(AbstractEmotesProcessor, FileNameUtils):
         AbstractEmotesProcessor.process_group(self)
 
     def process_emote(self, emote):
-        file_name = self.single_emotes_filename.format(emote['sr'], os.path.join( *(max(emote['names'], key=len).split('/')) ) )
+        file_name = self.scraper.get_single_image(emote)
         if not os.path.exists(file_name):
             cropped = self.extract_single_image(emote, self.image)
             if cropped:

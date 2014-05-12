@@ -61,7 +61,14 @@ class BMScraper(FileNameUtils):
 
         self._requests = requests.Session()
         self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.0 by /u/marminatoror'}
-        
+    
+    # This function returns a path to a single image.
+    # This image does not contain any animations.
+    # Please note: A emote can have a hover image.
+    # This function does not take the hover image into account.
+    def get_single_image(self, emote):
+        return os.path.join( *(['single_emotes']+((max(emote['names'], key=len)+".png").split('/'))))
+    
     def _emote_post_preferance(self):
         '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.'''
         
@@ -88,6 +95,13 @@ class BMScraper(FileNameUtils):
             emote['names'] = descriptive_names + long_names
     
     def merge_emotes(self, keeper, goner):
+        filename = self.get_single_image(goner)
+        
+        try:
+            os.remove(filename)
+        except:
+            pass
+        
         keeper['names'] = keeper['names'] + goner['names']
         keeper['names'] = _remove_duplicates(keeper['names'])
     
@@ -140,7 +154,7 @@ class BMScraper(FileNameUtils):
                     continue
                 
                 # filename points to a emote's image. It is never a sprite map.
-                filename = self.processor_factory.single_emotes_filename.format(emote['sr'], os.path.join( *(max(emote['names'], key=len).split('/')) ) )
+                filename = self.get_single_image(emote)
                 vector = puzzle.get_cvec_from_file( filename )
                 
                 for other_emote, other_vector in processed_emotes:

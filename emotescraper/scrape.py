@@ -28,8 +28,7 @@ import json
 import os
 
 
-factory = UserscriptEmotesProcessorFactory(single_emotes_filename=os.path.join('..', 'single_emotes', '{}', '{}.png'),
-                                           apng_dir=os.path.join('..', 'images'),
+factory = UserscriptEmotesProcessorFactory(apng_dir=os.path.join('..', 'images'),
                                            apng_url='http://berrymotes.com/images/{}/{}')
 
 scraper = BMScraper(factory)

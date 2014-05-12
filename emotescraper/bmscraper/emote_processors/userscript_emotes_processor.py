@@ -24,10 +24,9 @@ logger = logging.getLogger(__name__)
 
 class UserscriptEmotesProcessorFactory(BasicEmotesProcessorFactory):
     def __init__(self,
-                 single_emotes_filename='single_emotes/{}/{}.png',
                  apng_dir='images',
                  apng_url='images/{}/{}'):
-        BasicEmotesProcessorFactory.__init__(self, single_emotes_filename=single_emotes_filename)
+        BasicEmotesProcessorFactory.__init__(self)
         self.apng_dir = apng_dir
         self.apng_url = apng_url
 
@@ -35,19 +34,18 @@ class UserscriptEmotesProcessorFactory(BasicEmotesProcessorFactory):
         return UserscriptEmotesProcessor(scraper=scraper,
                                          image_url=image_url,
                                          group=group,
-                                         single_emotes_filename=self.single_emotes_filename,
                                          apng_dir=self.apng_dir,
                                          apng_url=self.apng_url)
 
 
 class UserscriptEmotesProcessor(BasicEmotesProcessor, APNGCheck):
-    def __init__(self, scraper=None, image_url=None, group=None, single_emotes_filename=None,
+    def __init__(self, scraper=None, image_url=None, group=None,
                  apng_dir=None, apng_url=None):
         BasicEmotesProcessor.__init__(self,
                                       scraper=scraper,
                                       image_url=image_url,
                                       group=group,
-                                      single_emotes_filename=single_emotes_filename)
+                                      )
         self.apng_dir = apng_dir
         self.apng_url = apng_url
 
