@@ -177,6 +177,10 @@ class BMScraper(FileNameUtils):
         self.emotes = filter(lambda emote: emote not in duplicates, self.emotes)
         
     def _fetch_css(self):
+    
+        if not os.path.exists('css'):
+            os.makedirs('css')
+    
         logger.debug("Fetching css using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
         
@@ -375,8 +379,7 @@ class BMScraper(FileNameUtils):
                 and emote['background-image'] not in self.image_blacklist
                 and 'height' in emote and emote['height'] < 1500
                 and 'width' in emote and emote['width'] < 1500):
-                with self.mutex:
-                    self.emotes.append(emote)
+                self.emotes.append(emote)
             else:
                 logger.warn('Discarding emotes {}'.format(emote['names'][0]))
     
@@ -393,6 +396,9 @@ class BMScraper(FileNameUtils):
         text = response.text.encode('utf-8')
         
         css_cache_file_path = self.get_file_path(response.url, rootdir=self.cache_dir )
+        with self.mutex:
+            if not os.path.exists(os.path.dirname(css_cache_file_path)):
+                os.makedirs(os.path.dirname(css_cache_file_path))
         css_subreddit_path = path.join('css', subreddit) + '.css'
         
         with open( css_cache_file_path, 'w' ) as f:
@@ -409,11 +415,10 @@ class BMScraper(FileNameUtils):
             return
 
         image_dir = path.dirname(image_path)
-        if not path.exists(image_dir):
-            try:
+        
+        with self.mutex:
+            if not path.exists(image_dir):
                 os.makedirs(image_dir)
-            except OSError:
-                pass
 
         with open(image_path, 'wb') as f:
             f.write(data)
