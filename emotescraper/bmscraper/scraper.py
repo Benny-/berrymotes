@@ -104,8 +104,22 @@ class BMScraper(FileNameUtils):
         
         keeper['names'] = keeper['names'] + goner['names']
         keeper['names'] = _remove_duplicates(keeper['names'])
+        goner['names'] = []
     
     def _dedupe_emotes(self):
+    
+        for subreddit in self.subreddits:
+            subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
+            other_subreddits_emotes = [x for x in self.emotes if x['sr'] != subreddit]
+            for subreddit_emote in subreddit_emotes:
+                for emote in other_subreddits_emotes:
+                    
+                    # Remove duplicate names. The subreddit scraping order will determine which emote keeps there name.
+                    for name in subreddit_emote['names']:
+                        if name in emote['names']:
+                            #logger.debug("Deduping: {}".format(name))
+                            emote['names'].remove(name)
+        
         for subreddit in self.subreddits:
             subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
             other_subreddits_emotes = [x for x in self.emotes if x['sr'] != subreddit]
@@ -125,14 +139,6 @@ class BMScraper(FileNameUtils):
                         
                         self.merge_emotes(subreddit_emote, emote)
                         self.emotes.remove(emote)
-                    else:
-                        # Remove duplicate names. The subreddit scraping order will determine which emote keeps there name.
-                        for name in subreddit_emote['names']:
-                            if name in emote['names']:
-                                #logger.debug("Deduping: {}".format(name))
-                                emote['names'].remove(name)
-                                if len(emote['names']) == 0:
-                                    self.emotes.remove(emote)
 
     def _visually_dedupe_emotes(self):
         processed_emotes = []
