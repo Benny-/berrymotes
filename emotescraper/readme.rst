@@ -8,6 +8,8 @@ External dependencies for Pillow:
 External dependencies for pypuzzle:
     apt-get install libgd2-xpm-dev libpuzzle-dev
 
+The apngdis program must exist:
+    apt-get install apngdis
 
 Python dependecies
 ########################
