@@ -71,11 +71,9 @@ class UserscriptEmotesProcessor(BasicEmotesProcessor, APNGCheck):
 
             apng_file = self.get_file_path(self.image_url, rootdir=self.apng_dir)
 
-            if not os.path.exists(os.path.dirname(apng_file)):
-                try:
+            with self.scraper.mutex:
+                if not os.path.exists(os.path.dirname(apng_file)):
                     os.makedirs(os.path.dirname(apng_file))
-                except OSError, e:
-                    pass
 
             if not os.path.exists(apng_file):
                 copyfile(image_file, apng_file)

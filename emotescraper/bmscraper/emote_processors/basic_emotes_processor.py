@@ -50,23 +50,16 @@ class BasicEmotesProcessor(AbstractEmotesProcessor, FileNameUtils):
         if not os.path.exists(file_name):
             cropped = self.extract_single_image(emote, self.image)
             if cropped:
-                try:
+                with self.scraper.mutex:
                     if not os.path.exists(os.path.dirname(file_name)):
-                        try:
-                            os.makedirs(os.path.dirname(file_name))
-                        except OSError:
-                            pass
+                        os.makedirs(os.path.dirname(file_name))
 
-                    f = open(file_name, 'wb')
+                with open(file_name, 'wb') as f:
                     cropped.save(f)
-                    f.close()
-                except Exception, e:
-                    logger.exception(e)
 
     def load_image(self, image_file):
-        f = open(image_file, 'rb')
-        self.image_data = f.read()
-        f.close()
+        with open(image_file, 'rb') as f:
+            self.image_data = f.read()
 
         self.image = Image.open(StringIO(self.image_data))
 
