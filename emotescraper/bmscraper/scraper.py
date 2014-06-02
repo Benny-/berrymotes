@@ -24,7 +24,7 @@ import os
 from os import path
 from .downloadjob import DownloadJob
 from .filenameutils import get_file_path
-from .Emote import Emote
+from .Emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name
 from multiprocessing import cpu_count
 from dateutil import parser
 from PIL import Image
@@ -77,6 +77,7 @@ class BMScraper():
 
         keeper['names'] = keeper['names'] + goner['names']
         keeper['names'] = _remove_duplicates(keeper['names'])
+        keeper['tags'] = keeper.get('tags', []) + goner.get('tags', [])
         goner['names'] = []
 
     def _login(self):
@@ -234,7 +235,7 @@ class BMScraper():
                 and emote['background-image'] not in self.image_blacklist
                 and 'height' in emote and emote['height'] < 1500
                 and 'width' in emote and emote['width'] < 1500):
-                self.emotes.append(Emote(emote))
+                self.emotes.append(emote)
             else:
                 logger.warn('Discarding emotes {}'.format(emote['names'][0]))
 
@@ -303,8 +304,8 @@ class BMScraper():
                                              **{'image_path': file_path}))
 
         with self.mutex:
-            create_download_jobs( lambda e: e['background-image'] )
-            create_download_jobs( lambda e: e['hover-background-image'] )
+            create_download_jobs( lambda e: e['background-image'])
+            create_download_jobs( lambda e: e.get('hover-background-image'))
 
         workpool.shutdown()
         workpool.join()
@@ -326,6 +327,45 @@ class BMScraper():
         with open(image_path, 'wb') as f:
             f.write(data)
 
+    def _handle_background_for_emote(self, emote, background_image_path, background_image, background_image_width, background_image_height):
+        extracted_single_image = extract_single_image(emote, background_image)
+        extracted_single_image_width, extracted_single_image_height = extracted_single_image.size
+
+        if not os.path.exists(os.path.dirname(get_single_image_path(emote))):
+            os.makedirs(os.path.dirname(get_single_image_path(emote)))
+
+        if background_image_width == extracted_single_image_width and background_image_height == extracted_single_image_height:
+            shutil.copyfile(background_image_path, get_single_image_path(emote, background_image.format))
+            shutil.copystat(background_image_path, get_single_image_path(emote))
+        elif not os.path.exists(get_single_image_path(emote)):
+            with open(get_single_image_path(emote), 'wb') as f:
+                extracted_single_image.save(f)
+            if emote['img_animation']:
+                logger.error('Emote '+friendly_name(emote)+' is animated but is part of a spritemap. Single image output will be incorrect.')
+
+        if has_hover(emote) and emote['img_animation']:
+            logger.error('Emote '+friendly_name(emote)+' is animated and contains a hover. This was never anticipated any output this script generates may be incorrect')
+
+        if has_hover(emote) and 'hover-background-image' not in emote:
+            if not os.path.exists(os.path.dirname(get_single_hover_image_path(emote))):
+                os.makedirs(os.path.dirname(get_single_hover_image_path(emote)))
+            extracted_single_hover_image = extract_single_hover_image(emote, background_image)
+            with open(get_single_hover_image_path(emote), 'wb') as f:
+                extracted_single_hover_image.save(f)
+
+    def _handle_hover_background_for_emote(self, emote, hover_background_image_path, hover_background_image, hover_background_image_width, hover_background_image_height):
+        extracted_single_hover_image = extract_single_hover_image(emote,hover_background_image)
+        extracted_single_hover_image_width, extracted_single_hover_image_height = extracted_single_hover_image.size
+
+        if not os.path.exists(os.path.dirname(get_single_hover_image_path(emote))):
+            os.makedirs(os.path.dirname(get_single_hover_image_path(emote)))
+
+        if hover_background_image_width == extracted_single_hover_image_width and hover_background_image_height == extracted_single_hover_image_height:
+            shutil.copyfile(hover_background_image_path, get_single_hover_image_path(emote, hover_background_image.format))
+            shutil.copystat(hover_background_image_path, get_single_hover_image_path(emote))
+        with open(get_single_hover_image_path(emote), 'wb') as f:
+            extracted_single_hover_image.save(f)
+
     def _extract_images_from_spritemaps(self):
 
         def is_apng(image_data):
@@ -340,44 +380,18 @@ class BMScraper():
             background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
             with open(background_image_path, 'rb') as f:
                 background_image_data = f.read()
+            animated = False
+            if is_apng(background_image_data):
+                animated = True;
             background_image = Image.open(open(background_image_path, 'rb'))
-            background_image_width = background_image.size[0]
-            background_image_height = background_image.size[0]
+            background_image_width, background_image_height = background_image.size
 
             for emote in emote_group:
-                animated = False
-                if is_apng(background_image_data):
-                    animated = True;
-                emote['img_animation'] = animated;
+                emote['img_animation'] = animated
                  # TODO: Consider checking if the hover image is animated.
+                self._handle_background_for_emote(emote, background_image_path, background_image, background_image_width, background_image_height)
 
-                extracted_single_image = emote.extract_single_image(background_image)
-                extracted_single_image_width = extracted_single_image.size[0]
-                extracted_single_image_height = extracted_single_image.size[1]
-
-                if not os.path.exists(os.path.dirname(emote.get_single_image_path())):
-                    os.makedirs(os.path.dirname(emote.get_single_image_path()))
-
-                if background_image_width == extracted_single_image_width and background_image_height == extracted_single_image_height:
-                    shutil.copyfile(background_image_path, emote.get_single_image_path(background_image.format))
-                    shutil.copystat(background_image_path, emote.get_single_image_path())
-                elif not os.path.exists(emote.get_single_image_path()):
-                    with open(emote.get_single_image_path(), 'wb') as f:
-                        extracted_single_image.save(f)
-                    if animated:
-                        logger.error('Emote '+str(emote)+' is animated but is part of a spritemap. Single image output will be incorrect.')
-
-                if emote.has_hover() and animated:
-                    logger.error('Emote '+str(emote)+' is animated and contains a hover. This was never anticipated any output this script generates may be incorrect')
-
-                if emote.has_hover() and 'hover-background-image' not in emote:
-                    if not os.path.exists(os.path.dirname(emote.get_single_hover_image_path())):
-                        os.makedirs(os.path.dirname(emote.get_single_hover_image_path()))
-                    extracted_single_hover_image = emote.extract_single_hover_image(background_image)
-                    with open(emote.get_single_hover_image_path(), 'wb') as f:
-                        extracted_single_hover_image.save(f)
-
-        key_func = lambda e: e['hover-background-image']
+        key_func = lambda e: e.get('hover-background-image')
         for image_url, emote_group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
 
             if not image_url:
@@ -385,22 +399,10 @@ class BMScraper():
 
             hover_background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
             hover_background_image = Image.open(open(hover_background_image_path, 'rb'))
-            hover_background_image_width = hover_background_image.size[0]
-            hover_background_image_height = hover_background_image.size[0]
+            hover_background_image_width, hover_background_image_height = hover_background_image.size
 
             for emote in emote_group:
-                extracted_single_hover_image = emote.extract_single_hover_image(hover_background_image)
-                extracted_single_hover_image_width = extracted_single_hover_image.size[0]
-                extracted_single_hover_image_height = extracted_single_hover_image.size[1]
-
-                if not os.path.exists(os.path.dirname(emote.get_single_hover_image_path())):
-                    os.makedirs(os.path.dirname(emote.get_single_hover_image_path()))
-
-                if hover_background_image_width == extracted_single_hover_image_width and hover_background_image_height == extracted_single_hover_image_height:
-                    shutil.copyfile(hover_background_image_path, emote.get_single_hover_image_path(hover_background_image.format))
-                    shutil.copystat(hover_background_image_path, emote.get_single_hover_image_path())
-                with open(emote.get_single_hover_image_path(), 'wb') as f:
-                    extracted_single_hover_image.save(f)
+                self._handle_hover_background_for_emote(emote, hover_background_image_path, hover_background_image, hover_background_image_width, hover_background_image_height)
 
     def _visually_dedupe_emotes(self):
         processed_emotes = []
@@ -421,7 +423,7 @@ class BMScraper():
                 if emote['img_animation']:
                     continue
 
-                image_path = emote.get_single_image_path()
+                image_path = get_single_image_path(emote)
                 vector = puzzle.get_cvec_from_file(image_path)
 
                 for other_emote, other_compressed_vector in processed_emotes:
@@ -463,6 +465,13 @@ class BMScraper():
                     descriptive_names.append(name)
             emote['names'] = descriptive_names + long_names
 
+    def _remove_garbage(self):
+        for emote in self.emotes:
+            if 'tags' in emote:
+                emote['tags'] = _remove_duplicates(emote['tags'])
+                if '' in emote['tags']:
+                    emote['tags'].remove('')
+
     def scrape(self):
         self._login()
         self._fetch_css()
@@ -472,9 +481,7 @@ class BMScraper():
         self._extract_images_from_spritemaps()
         self._visually_dedupe_emotes()
         self._emote_post_preferance()
+        self._remove_garbage()
 
     def export_emotes(self):
         return self.emotes
-
-    def export_emotes_simple_structures(self):
-        return [e.emote_data for e in self.emotes]

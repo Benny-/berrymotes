@@ -40,16 +40,16 @@ scraper.tags_data = requests.get("http://btc.berrytube.tv/berrymotes/data.js").j
 start = time.time()
 scraper.scrape()
 logger.info("Finished scrape in {}.".format(time.time() - start))
-emotes = scraper.export_emotes_simple_structures()
+emotes = scraper.export_emotes()
 
 FILENAME = "emotes_metadata"
 with open(FILENAME + '.min.js', 'w') as f:
-    f.write("var berryEmotes = ")
+    f.write("var emotes_metadata = ")
     json.dump(emotes, fp=f, separators=(',', ':'))
     f.write(";")
 
 with open(FILENAME + '.js', 'w') as f:
-    f.write("var berryEmotes = ")
+    f.write("var emotes_metadata = ")
     json.dump(emotes, fp=f, separators=(',', ':'), indent=2)
     f.write(";")
 
