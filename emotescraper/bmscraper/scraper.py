@@ -22,12 +22,14 @@ from collections import defaultdict
 import itertools
 import os
 from os import path
-from downloadjob import DownloadJob
-from filenameutils import FileNameUtils
+from .downloadjob import DownloadJob
+from .filenameutils import get_file_path
+from .Emote import Emote
 from multiprocessing import cpu_count
 from dateutil import parser
-import re
+from PIL import Image
 import pypuzzle
+import shutil
 
 import logging
 
@@ -42,8 +44,8 @@ def _remove_duplicates(seq):
     seen_add = seen.add
     return [ x for x in seq if x not in seen and not seen_add(x)]
 
-class BMScraper(FileNameUtils):
-    def __init__(self, processor_factory):
+class BMScraper():
+    def __init__(self):
         self.subreddits = []
         self.user = None
         self.password = None
@@ -54,135 +56,43 @@ class BMScraper(FileNameUtils):
         self.tags_data = {}
         self.cache_dir = 'cache'
         self.workers = cpu_count()
-        self.processor_factory = processor_factory
         self.rate_limit_lock = None
 
         self.mutex = threading.RLock()
 
         self._requests = requests.Session()
         self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.0 by /u/marminatoror'}
-    
-    # This function returns a path to a single image.
-    # This image does not contain any animations.
-    # Please note: A emote can have a hover image.
-    # This function does not take the hover image into account.
-    def get_single_image(self, emote):
-        return os.path.join( *(['single_emotes']+((max(emote['names'], key=len)+".png").split('/'))))
-    
-    def _emote_post_preferance(self):
-        '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.'''
-        
-        # We push all the numbered names back. They are generally not very descriptive.
-        for emote in self.emotes:
-            numbered_names = []
-            descriptive_names = []
-            for name in emote['names']:
-                if len(re_numbers.findall(name)) > 0:
-                    numbered_names.append(name)
-                else:
-                    descriptive_names.append(name)
-            emote['names'] = descriptive_names + numbered_names
-    
-        # We push all the names containing slashes back.
-        for emote in self.emotes:
-            long_names = []
-            descriptive_names = []
-            for name in emote['names']:
-                if len(re_slash.findall(name)) > 0:
-                    long_names.append(name)
-                else:
-                    descriptive_names.append(name)
-            emote['names'] = descriptive_names + long_names
-    
-    def merge_emotes(self, keeper, goner):
-        filename = self.get_single_image(goner)
-        
+
+    def _merge_emotes(self, keeper, goner):
+
         try:
-            os.remove(filename)
+            os.remove(goner.get_single_image_path())
         except:
             pass
-        
+
+        try:
+            os.remove(goner.get_single_hover_image_path())
+        except:
+            pass
+
         keeper['names'] = keeper['names'] + goner['names']
         keeper['names'] = _remove_duplicates(keeper['names'])
         goner['names'] = []
-    
-    def _dedupe_emotes(self):
-    
-        for subreddit in self.subreddits:
-            subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
-            other_subreddits_emotes = [x for x in self.emotes if x['sr'] != subreddit]
-            for subreddit_emote in subreddit_emotes:
-                for emote in other_subreddits_emotes:
-                    
-                    # Remove duplicate names. The subreddit scraping order will determine which emote keeps there name.
-                    for name in subreddit_emote['names']:
-                        if name in emote['names']:
-                            emote['names'].remove(name)
-        
-        for subreddit in self.subreddits:
-            subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
-            other_subreddits_emotes = [x for x in self.emotes if x['sr'] != subreddit]
-            for subreddit_emote in subreddit_emotes:
-                for emote in other_subreddits_emotes:
-                    
-                    # merge (move all names to one emote) both emotes if they use the same image source
-                    # This method is not perfect. It ignores CSS attributes.
-                    # A emote using the same image source (While still being visually different using CSS)
-                    # will still be incorrectly merged.
-                    # 
-                    # This method does not do visual image comparison. Visually equal images will not be merged.
-                    if (emote['background-image'] == subreddit_emote['background-image'] and
-                        emote.get('background-position') == subreddit_emote.get('background-position') and
-                        emote.get('height') == subreddit_emote.get('height') and
-                        emote.get('width') == subreddit_emote.get('width') ):
-                        
-                        self.merge_emotes(subreddit_emote, emote)
-                        self.emotes.remove(emote)
 
-    def _visually_dedupe_emotes(self):
-        processed_emotes = []
-        duplicates = []
-        puzzle = pypuzzle.Puzzle()
-        
-        for subreddit in self.subreddits:
-            subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
-            
-            logger.info('Beginning to visually dedupe emotes in subreddit '+subreddit)
-            for emote in subreddit_emotes:
-                
-                if emote in duplicates:
-                    continue
-                
-                # Ignore apng urls as they sometime start with a black frame.
-                # We only check the first frame and thus they are visually the same as any other black picture.
-                if 'apng_url' in emote:
-                    continue
-                
-                # filename points to a emote's image. It is never a sprite map.
-                filename = self.get_single_image(emote)
-                vector = puzzle.get_cvec_from_file( filename )
-                
-                for other_emote, other_vector in processed_emotes:
-                    
-                    if other_emote in duplicates:
-                        continue
-                    
-                    distance = puzzle.get_distance_from_cvec(vector, other_vector)
-                    if( distance < 0.05 ):
-                        self.merge_emotes(other_emote, emote)
-                        duplicates.append(emote)
-                processed_emotes.append( (emote, vector) )
-            
-        self.emotes = filter(lambda emote: emote not in duplicates, self.emotes)
-        
+    def _login(self):
+        if self.user and self.password:
+            body = {'user': self.user, 'passwd': self.password, "rem": False}
+            self.rate_limit_lock and self.rate_limit_lock.acquire()
+            self._requests.post('http://www.reddit.com/api/login', body)
+
     def _fetch_css(self):
-    
+
         if not os.path.exists('css'):
             os.makedirs('css')
-    
+
         logger.debug("Fetching css using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
-        
+
         for subreddit in self.subreddits:
             try:
                 css_subreddit_path = path.join('css', subreddit) + '.css'
@@ -199,66 +109,27 @@ class BMScraper(FileNameUtils):
         workpool.shutdown()
         workpool.join()
 
-    def _download_images(self):
-        logger.debug("Downloading images using {} threads".format(self.workers))
-        workpool = WorkerPool(size=self.workers)
+    def _callback_fetch_stylesheet(self, response, subreddit=None):
+        if not response:
+            logger.error("Failed to fetch css for {}".format(subreddit))
+            return
 
-        # cache emotes
-        key_func = lambda e: e['background-image']
+        if response.status_code != 200:
+            logger.error("Failed to fetch css for {} (Status {})".format(subreddit, response.status_code))
+            return
+
+        text = response.text.encode('utf-8')
+
+        css_cache_file_path = get_file_path(response.url, rootdir=self.cache_dir )
         with self.mutex:
-            for image_url, group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
-                if not image_url:
-                    continue
+            if not os.path.exists(os.path.dirname(css_cache_file_path)):
+                os.makedirs(os.path.dirname(css_cache_file_path))
+        css_subreddit_path = path.join('css', subreddit) + '.css'
 
-                file_path = self.get_file_path(image_url, rootdir=self.cache_dir)
-                if not path.isfile(file_path):
-                    workpool.put(DownloadJob(self._requests,
-                                             image_url,
-                                             retry=5,
-                                             rate_limit_lock=self.rate_limit_lock,
-                                             callback=self._callback_download_image,
-                                             **{'image_path': file_path}))
+        with open( css_cache_file_path, 'w' ) as f:
+            f.write( text )
 
-        workpool.shutdown()
-        workpool.join()
-
-    def _process_emotes(self):
-        logger.debug("Processing emotes using {} threads".format(self.workers))
-        workpool = WorkerPool(self.workers)
-
-        key_func = lambda e: e['background-image']
-        with self.mutex:
-            for image_url, group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
-                if not image_url:
-                    continue
-
-                workpool.put(self.processor_factory.new_processor(scraper=self, image_url=image_url, group=list(group)))
-
-        workpool.shutdown()
-        workpool.join()
-
-    def scrape(self):
-        # Login
-        if self.user and self.password:
-            body = {'user': self.user, 'passwd': self.password, "rem": False}
-            self.rate_limit_lock and self.rate_limit_lock.acquire()
-            self._requests.post('http://www.reddit.com/api/login', body)
-        
-        self._fetch_css()
-        
-        self._process_stylesheets()
-        
-        self._dedupe_emotes()
-        
-        self._download_images()
-        
-        self._process_emotes()
-        
-        self._visually_dedupe_emotes()
-        
-        self._emote_post_preferance()
-        
-        logger.info('All Done')
+        os.symlink(os.path.relpath(css_cache_file_path, 'css/'), css_subreddit_path );
 
     def _parse_css(self, data):
         cssparser = tinycss.make_parser('page3')
@@ -302,36 +173,23 @@ class BMScraper(FileNameUtils):
                             rules[name] = val
                             emotes_staging[match.group(1)].update(rules)
         return emotes_staging
-    
-    def _process_stylesheets(self):
-        
-        for subreddit in self.subreddits:
-            content = None
-            css_subreddit_path = path.join('css', subreddit) + '.css'
-            
-            try:
-                with open( css_subreddit_path, 'r' ) as f:
-                    content = f.read().decode('utf-8')
-                    self._process_stylesheet(content, subreddit)
-            except Exception as ex:
-                logger.warn('Not parsing stylesheet for ' + subreddit + ": " + str(ex))
-            
-    
+
     def _process_stylesheet(self, content, subreddit=None):
-        
+
         emotes_staging = self._parse_css(content)
         if not emotes_staging:
             return
-        
+
         key_func = lambda e: e[1]
         for emote, group in itertools.groupby(sorted(emotes_staging.iteritems(), key=key_func), key_func):
             emote['names'] = [a[0].encode('ascii', 'ignore') for a in group]
-            
+
             full_names = []
             for name in emote['names']:
                 full_names.append('r/'+subreddit+'/'+name)
             emote['names'] = emote['names'] + full_names
-            
+            emote['canonical'] = max(emote['names'], key=len)
+
             for name in emote['names']:
                 meta_data = next((x for x in self.emote_info if x['name'] == name), None)
 
@@ -376,32 +234,80 @@ class BMScraper(FileNameUtils):
                 and emote['background-image'] not in self.image_blacklist
                 and 'height' in emote and emote['height'] < 1500
                 and 'width' in emote and emote['width'] < 1500):
-                self.emotes.append(emote)
+                self.emotes.append(Emote(emote))
             else:
                 logger.warn('Discarding emotes {}'.format(emote['names'][0]))
-    
-    def _callback_fetch_stylesheet(self, response, subreddit=None):
-        if not response:
-            logger.error("Failed to fetch css for {}".format(subreddit))
-            return
 
-        if response.status_code != 200:
-            logger.error("Failed to fetch css for {} (Status {})".format(subreddit, response.status_code))
-            return
-        
-        filename = response.url.split('/').pop()
-        text = response.text.encode('utf-8')
-        
-        css_cache_file_path = self.get_file_path(response.url, rootdir=self.cache_dir )
+    def _process_stylesheets(self):
+
+        for subreddit in self.subreddits:
+            content = None
+            css_subreddit_path = path.join('css', subreddit) + '.css'
+
+            try:
+                with open( css_subreddit_path, 'r' ) as f:
+                    content = f.read().decode('utf-8')
+                    self._process_stylesheet(content, subreddit)
+            except Exception as ex:
+                logger.warn('Not parsing stylesheet for ' + subreddit + ": " + str(ex))
+
+    def _dedupe_emotes(self):
+
+        for subreddit in self.subreddits:
+            subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
+            other_subreddits_emotes = [x for x in self.emotes if x['sr'] != subreddit]
+            for subreddit_emote in subreddit_emotes:
+                for emote in other_subreddits_emotes:
+
+                    # Remove duplicate names. The subreddit scraping order will determine which emote keeps there name.
+                    for name in subreddit_emote['names']:
+                        if name in emote['names']:
+                            emote['names'].remove(name)
+
+        for subreddit in self.subreddits:
+            subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
+            other_subreddits_emotes = [x for x in self.emotes if x['sr'] != subreddit]
+            for subreddit_emote in subreddit_emotes:
+                for emote in other_subreddits_emotes:
+
+                    # merge (move all names to one emote) both emotes if they use the same image source
+                    # This method is not perfect. It ignores CSS attributes.
+                    # A emote using the same image source (While still being visually different using CSS)
+                    # will still be incorrectly merged.
+                    #
+                    # This method does not do visual image comparison. Visually equal images will not be merged.
+                    if (emote['background-image'] == subreddit_emote['background-image'] and
+                        emote.get('background-position') == subreddit_emote.get('background-position') and
+                        emote.get('height') == subreddit_emote.get('height') and
+                        emote.get('width') == subreddit_emote.get('width') ):
+
+                        self._merge_emotes(subreddit_emote, emote)
+                        self.emotes.remove(emote)
+
+    def _download_images(self):
+        logger.debug("Downloading images using {} threads".format(self.workers))
+        workpool = WorkerPool(size=self.workers)
+
+        def create_download_jobs(key_func):
+            for image_url, group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
+                if not image_url:
+                    continue
+
+                file_path = get_file_path(image_url, rootdir=self.cache_dir)
+                if not path.isfile(file_path):
+                    workpool.put(DownloadJob(self._requests,
+                                             image_url,
+                                             retry=5,
+                                             rate_limit_lock=self.rate_limit_lock,
+                                             callback=self._callback_download_image,
+                                             **{'image_path': file_path}))
+
         with self.mutex:
-            if not os.path.exists(os.path.dirname(css_cache_file_path)):
-                os.makedirs(os.path.dirname(css_cache_file_path))
-        css_subreddit_path = path.join('css', subreddit) + '.css'
-        
-        with open( css_cache_file_path, 'w' ) as f:
-            f.write( text )
-        
-        os.symlink(os.path.relpath(css_cache_file_path, 'css/'), css_subreddit_path );
+            create_download_jobs( lambda e: e['background-image'] )
+            create_download_jobs( lambda e: e['hover-background-image'] )
+
+        workpool.shutdown()
+        workpool.join()
 
     def _callback_download_image(self, response, image_path=None):
         if not image_path:
@@ -412,7 +318,7 @@ class BMScraper(FileNameUtils):
             return
 
         image_dir = path.dirname(image_path)
-        
+
         with self.mutex:
             if not path.exists(image_dir):
                 os.makedirs(image_dir)
@@ -420,3 +326,155 @@ class BMScraper(FileNameUtils):
         with open(image_path, 'wb') as f:
             f.write(data)
 
+    def _extract_images_from_spritemaps(self):
+
+        def is_apng(image_data):
+            return 'acTL' in image_data[0:image_data.find('IDAT')]
+
+        key_func = lambda e: e['background-image']
+        for image_url, emote_group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
+
+            if not image_url:
+                continue
+
+            background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
+            with open(background_image_path, 'rb') as f:
+                background_image_data = f.read()
+            background_image = Image.open(open(background_image_path, 'rb'))
+            background_image_width = background_image.size[0]
+            background_image_height = background_image.size[0]
+
+            for emote in emote_group:
+                animated = False
+                if is_apng(background_image_data):
+                    animated = True;
+                emote['img_animation'] = animated;
+                 # TODO: Consider checking if the hover image is animated.
+
+                extracted_single_image = emote.extract_single_image(background_image)
+                extracted_single_image_width = extracted_single_image.size[0]
+                extracted_single_image_height = extracted_single_image.size[1]
+
+                if not os.path.exists(os.path.dirname(emote.get_single_image_path())):
+                    os.makedirs(os.path.dirname(emote.get_single_image_path()))
+
+                if background_image_width == extracted_single_image_width and background_image_height == extracted_single_image_height:
+                    shutil.copyfile(background_image_path, emote.get_single_image_path(background_image.format))
+                    shutil.copystat(background_image_path, emote.get_single_image_path())
+                elif not os.path.exists(emote.get_single_image_path()):
+                    with open(emote.get_single_image_path(), 'wb') as f:
+                        extracted_single_image.save(f)
+                    if animated:
+                        logger.error('Emote '+str(emote)+' is animated but is part of a spritemap. Single image output will be incorrect.')
+
+                if emote.has_hover() and animated:
+                    logger.error('Emote '+str(emote)+' is animated and contains a hover. This was never anticipated any output this script generates may be incorrect')
+
+                if emote.has_hover() and 'hover-background-image' not in emote:
+                    if not os.path.exists(os.path.dirname(emote.get_single_hover_image_path())):
+                        os.makedirs(os.path.dirname(emote.get_single_hover_image_path()))
+                    extracted_single_hover_image = emote.extract_single_hover_image(background_image)
+                    with open(emote.get_single_hover_image_path(), 'wb') as f:
+                        extracted_single_hover_image.save(f)
+
+        key_func = lambda e: e['hover-background-image']
+        for image_url, emote_group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
+
+            if not image_url:
+                continue
+
+            hover_background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
+            hover_background_image = Image.open(open(hover_background_image_path, 'rb'))
+            hover_background_image_width = hover_background_image.size[0]
+            hover_background_image_height = hover_background_image.size[0]
+
+            for emote in emote_group:
+                extracted_single_hover_image = emote.extract_single_hover_image(hover_background_image)
+                extracted_single_hover_image_width = extracted_single_hover_image.size[0]
+                extracted_single_hover_image_height = extracted_single_hover_image.size[1]
+
+                if not os.path.exists(os.path.dirname(emote.get_single_hover_image_path())):
+                    os.makedirs(os.path.dirname(emote.get_single_hover_image_path()))
+
+                if hover_background_image_width == extracted_single_hover_image_width and hover_background_image_height == extracted_single_hover_image_height:
+                    shutil.copyfile(hover_background_image_path, emote.get_single_hover_image_path(hover_background_image.format))
+                    shutil.copystat(hover_background_image_path, emote.get_single_hover_image_path())
+                with open(emote.get_single_hover_image_path(), 'wb') as f:
+                    extracted_single_hover_image.save(f)
+
+    def _visually_dedupe_emotes(self):
+        processed_emotes = []
+        duplicates = []
+        puzzle = pypuzzle.Puzzle()
+
+        for subreddit in self.subreddits:
+            subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
+
+            logger.info('Beginning to visually dedupe emotes in subreddit '+subreddit)
+            for emote in subreddit_emotes:
+
+                if emote in duplicates:
+                    continue
+
+                # Ignore apng urls as they sometime start with a black frame.
+                # We only check the first frame and thus they are visually the same as any other black picture.
+                if emote['img_animation']:
+                    continue
+
+                image_path = emote.get_single_image_path()
+                vector = puzzle.get_cvec_from_file(image_path)
+
+                for other_emote, other_compressed_vector in processed_emotes:
+                    other_vector = puzzle.uncompress_cvec(other_compressed_vector)
+
+                    if other_emote in duplicates:
+                        continue
+
+                    distance = puzzle.get_distance_from_cvec(vector, other_vector)
+                    if( distance < 0.05 ):
+                        self._merge_emotes(other_emote, emote)
+                        duplicates.append(emote)
+                processed_emotes.append((emote, puzzle.compress_cvec(vector)))
+
+        self.emotes = filter(lambda emote: emote not in duplicates, self.emotes)
+
+    def _emote_post_preferance(self):
+        '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.'''
+
+        # We push all the numbered names back. They are generally not very descriptive.
+        for emote in self.emotes:
+            numbered_names = []
+            descriptive_names = []
+            for name in emote['names']:
+                if len(re_numbers.findall(name)) > 0:
+                    numbered_names.append(name)
+                else:
+                    descriptive_names.append(name)
+            emote['names'] = descriptive_names + numbered_names
+
+        # We push all the names containing slashes back.
+        for emote in self.emotes:
+            long_names = []
+            descriptive_names = []
+            for name in emote['names']:
+                if len(re_slash.findall(name)) > 0:
+                    long_names.append(name)
+                else:
+                    descriptive_names.append(name)
+            emote['names'] = descriptive_names + long_names
+
+    def scrape(self):
+        self._login()
+        self._fetch_css()
+        self._process_stylesheets()
+        self._dedupe_emotes()
+        self._download_images()
+        self._extract_images_from_spritemaps()
+        self._visually_dedupe_emotes()
+        self._emote_post_preferance()
+
+    def export_emotes(self):
+        return self.emotes
+
+    def export_emotes_simple_structures(self):
+        return [e.emote_data for e in self.emotes]

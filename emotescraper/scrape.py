@@ -21,17 +21,13 @@ from bmscraper.ratelimiter import TokenBucket
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-from bmscraper import BMScraper, UserscriptEmotesProcessorFactory
+from bmscraper import BMScraper
 
-from data import *
+from data import subreddits, image_blacklist, nsfw_subreddits, emote_info
+import pickle
 import json
-import os
 
-
-factory = UserscriptEmotesProcessorFactory(apng_dir=os.path.join('..', 'images'),
-                                           apng_url='http://berrymotes.com/images/{}/{}')
-
-scraper = BMScraper(factory)
+scraper = BMScraper()
 scraper.user = 'ponymoteharvester'
 scraper.password = 'berry_punch'
 scraper.subreddits = subreddits
@@ -44,20 +40,30 @@ scraper.tags_data = requests.get("http://btc.berrytube.tv/berrymotes/data.js").j
 start = time.time()
 scraper.scrape()
 logger.info("Finished scrape in {}.".format(time.time() - start))
+emotes = scraper.export_emotes_simple_structures()
 
-with open(os.path.join('..', 'js', 'berrymotes_data.min.js'), 'w') as f:
+FILENAME = "emotes_metadata"
+with open(FILENAME + '.min.js', 'w') as f:
     f.write("var berryEmotes = ")
-    json.dump(scraper.emotes, fp=f, separators=(',', ':') )
+    json.dump(emotes, fp=f, separators=(',', ':'))
     f.write(";")
 
-with open(os.path.join('..', 'js', 'berrymotes_data.js'), 'w') as f:
+with open(FILENAME + '.js', 'w') as f:
     f.write("var berryEmotes = ")
-    json.dump(scraper.emotes, fp=f, separators=(',', ':'), indent=2 )
+    json.dump(emotes, fp=f, separators=(',', ':'), indent=2)
     f.write(";")
 
-with open(os.path.join('..', 'js', 'berrymotes_data.min.json'), 'w') as f:
-    json.dump(scraper.emotes, fp=f, separators=(',', ':') )
+with open(FILENAME + '.min.json', 'w') as f:
+    json.dump(emotes, fp=f, separators=(',', ':'))
 
-with open(os.path.join('..', 'js', 'berrymotes_data.json'), 'w') as f:
-    json.dump(scraper.emotes, fp=f, separators=(',', ':'), indent=2 )
+with open(FILENAME + '.json', 'w') as f:
+    json.dump(emotes, fp=f, separators=(',', ':'), indent=2)
 
+with open(FILENAME + '.pickle_v0', "w") as f:
+    pickle.dump(emotes, file=f, protocol=0)
+
+with open(FILENAME + '.pickle_v1', "wb") as f:
+    pickle.dump(emotes, file=f, protocol=1)
+
+with open(FILENAME + '.pickle_v2', "wb") as f:
+    pickle.dump(emotes, file=f, protocol=2)
