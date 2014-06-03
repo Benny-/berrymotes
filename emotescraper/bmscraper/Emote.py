@@ -48,14 +48,22 @@ def _extract_single_image(emote, spritemap_img, position_key, width_key, height_
 
     if position_key in emote:
         if len(emote[position_key]) > 0:
-            x = int(emote[position_key][0].strip('-').strip('px').strip('%'))
-            if emote[position_key][0].endswith('%'):
-                x = width * x / 100;
+            raw_x = emote[position_key][0]
+            x = int(raw_x.strip('-').strip('px').strip('%'))
+            if '-' not in raw_x and '%' not in raw_x:
+                x = spritemap_width - x
+            # TODO: Potential Unhandled edge case with positive percentage.
+            if raw_x.endswith('%'):
+                x = width * x / 100
 
         if len(emote[position_key]) > 1:
-            y = int(emote[position_key][1].strip('-').strip('px').strip('%'))
-            if emote[position_key][1].endswith('%'):
-                y = height * y / 100;
+            raw_y = emote[position_key][1]
+            y = int(raw_y.strip('-').strip('px').strip('%'))
+            if '-' not in raw_y and '%' not in raw_y:
+                y = spritemap_height - y
+            # TODO: Potential Unhandled edge case with positive percentage.
+            if raw_y.endswith('%'):
+                y = height * y / 100
 
     x = x % spritemap_width
     y = y % spritemap_height
