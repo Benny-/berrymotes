@@ -64,14 +64,15 @@ class BMScraper():
         self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.0 by /u/marminatoror'}
 
     def _merge_emotes(self, keeper, goner):
+        logger.debug('Merging '+friendly_name(goner)+' into '+friendly_name(keeper))
 
         try:
-            os.remove(goner.get_single_image_path())
+            os.remove(get_single_image_path(goner))
         except:
             pass
 
         try:
-            os.remove(goner.get_single_hover_image_path())
+            os.remove(get_single_hover_image_path(goner))
         except:
             pass
 
@@ -81,12 +82,15 @@ class BMScraper():
         goner['names'] = []
 
     def _login(self):
+        logger.info('Logging in')
+
         if self.user and self.password:
             body = {'user': self.user, 'passwd': self.password, "rem": False}
             self.rate_limit_lock and self.rate_limit_lock.acquire()
             self._requests.post('http://www.reddit.com/api/login', body)
 
     def _fetch_css(self):
+        logger.info('Beginning to fetch css files')
 
         if not os.path.exists('css'):
             os.makedirs('css')
@@ -240,6 +244,7 @@ class BMScraper():
                 logger.warn('Discarding emotes {}'.format(emote['names'][0]))
 
     def _process_stylesheets(self):
+        logger.info('Beginning to process stylesheets')
 
         for subreddit in self.subreddits:
             content = None
@@ -253,6 +258,7 @@ class BMScraper():
                 logger.warn('Not parsing stylesheet for ' + subreddit + ": " + str(ex))
 
     def _dedupe_emotes(self):
+        logger.info('Beginning to de-duplicate emotes based on meta-data')
 
         for subreddit in self.subreddits:
             subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
@@ -367,6 +373,7 @@ class BMScraper():
             extracted_single_hover_image.save(f)
 
     def _extract_images_from_spritemaps(self):
+        logger.info('Beginning to extract images from spritemaps')
 
         def is_apng(image_data):
             return 'acTL' in image_data[0:image_data.find('IDAT')]
@@ -405,21 +412,26 @@ class BMScraper():
                 self._handle_hover_background_for_emote(emote, hover_background_image_path, hover_background_image, hover_background_image_width, hover_background_image_height)
 
     def _visually_dedupe_emotes(self):
+        logger.info('Beginning to visually dedupe emotes')
         processed_emotes = []
         duplicates = []
         puzzle = pypuzzle.Puzzle()
+        # Some images like 'minigunkill' got a generic vector (a vector consisting of only zero's)
+        # These images where merged with other images who also got a generic vector.
+        # Setting noise cutoff fixed this.
+        puzzle.set_noise_cutoff(0)
 
         for subreddit in self.subreddits:
             subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
 
-            logger.info('Beginning to visually dedupe emotes in subreddit '+subreddit)
+            logger.info('Visually dedupeing emotes in subreddit '+subreddit)
             for emote in subreddit_emotes:
 
                 if emote in duplicates:
                     continue
 
-                # Ignore apng urls as they sometime start with a black frame.
-                # We only check the first frame and thus they are visually the same as any other black picture.
+                # Ignore animations as they sometime start with a blank (transparant) frame.
+                # We only check the first frame and thus they are visually the same as any other blank picture.
                 if emote['img_animation']:
                     continue
 
@@ -433,12 +445,12 @@ class BMScraper():
                         continue
 
                     distance = puzzle.get_distance_from_cvec(vector, other_vector)
-                    if( distance < 0.05 ):
+                    if( distance < 0.01 ):
                         self._merge_emotes(other_emote, emote)
                         duplicates.append(emote)
                 processed_emotes.append((emote, puzzle.compress_cvec(vector)))
 
-        self.emotes = filter(lambda emote: emote not in duplicates, self.emotes)
+        self.emotes = [emote for emote in self.emotes if emote not in duplicates]
 
     def _emote_post_preferance(self):
         '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.'''
