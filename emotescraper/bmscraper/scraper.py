@@ -24,12 +24,14 @@ import os
 from os import path
 from .downloadjob import DownloadJob
 from .filenameutils import get_file_path
-from .Emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name
+from .Emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name, get_explode_directory
 from multiprocessing import cpu_count
 from dateutil import parser
 from PIL import Image
 import pypuzzle
 import shutil
+from sh import apngdis, apngasm, cwebp, webpmux
+from glob import glob
 
 import logging
 
@@ -333,40 +335,84 @@ class BMScraper():
         with open(image_path, 'wb') as f:
             f.write(data)
 
-    def _handle_background_for_emote(self, emote, background_image_path, background_image, background_image_width, background_image_height):
+    def _explode_emote(self, emote, background_image_path):
+        '''
+        Create a {emote name}_exploded directory
+        This directory contains all frames.
+        The frames are cut out a spritemap if the spritemap was animated.
+        Does not handle hover images.
+        '''
+        explode_dir = get_explode_directory(emote)
+        if not os.path.exists(explode_dir):
+            os.makedirs(explode_dir)
+        shutil.copyfile(background_image_path, os.path.join(explode_dir, "background.png"))
+        apngdis(os.path.join(explode_dir, "background.png"), "frame_")
+        os.remove(os.path.join(explode_dir, "background.png"))
+
+        frames_paths = sorted(glob(os.path.join(explode_dir, 'frame_*.png')))
+        for frame_path in frames_paths:
+            background_image = Image.open(frame_path)
+            extracted_single_image = extract_single_image(emote, background_image)
+            if cmp(background_image.size, extracted_single_image.size) != 0:
+                extracted_single_image.save(frame_path)
+
+    def _calculate_frame_delay(self, delay_file):
+        '''Calucate delay in ms'''
+        delay_text = ""
+        with open(delay_file, 'r') as f:
+            delay_text = f.readline().strip()[6:]
+
+        return int(round(float(delay_text[0:delay_text.index('/')]) / float(delay_text[delay_text.index('/') + 1:]) * 1000))
+
+    def _reassemble_emote_png(self, emote):
+        '''
+        Reconstructs a emote from a exploded form to animated .png
+        Does not handle hover images.
+        '''
+        explode_dir = get_explode_directory(emote)
+        frame_files = sorted(glob(os.path.join(explode_dir, 'frame_*.png')))
+        delay_files = sorted(glob(os.path.join(explode_dir, 'frame_*.txt')))
+        assert len(frame_files) == len(delay_files)
+
+        args = []
+        args = args + ['-o', get_single_image_path(emote)]
+        for frame_file, delay_file in zip(frame_files, delay_files):
+            args.append(frame_file)
+            args.append(self._calculate_frame_delay(delay_file))
+
+        apngasm( *args )
+
+    def _handle_background_for_emote(self, emote, background_image_path, background_image):
         extracted_single_image = extract_single_image(emote, background_image)
-        extracted_single_image_width, extracted_single_image_height = extracted_single_image.size
 
         if not os.path.exists(os.path.dirname(get_single_image_path(emote))):
             os.makedirs(os.path.dirname(get_single_image_path(emote)))
 
-        if background_image_width == extracted_single_image_width and background_image_height == extracted_single_image_height:
+        if emote['img_animation']:
+            self._explode_emote(emote, background_image_path)
+
+        if cmp(background_image.size, extracted_single_image.size) == 0:
             shutil.copyfile(background_image_path, get_single_image_path(emote, background_image.format))
             shutil.copystat(background_image_path, get_single_image_path(emote))
         elif not os.path.exists(get_single_image_path(emote)):
-            with open(get_single_image_path(emote), 'wb') as f:
-                extracted_single_image.save(f)
             if emote['img_animation']:
-                logger.error('Emote '+friendly_name(emote)+' is animated but is part of a spritemap. Single image output will be incorrect.')
+                self._reassemble_emote_png(emote)
+            else:
+                with open(get_single_image_path(emote), 'wb') as f:
+                    extracted_single_image.save(f)
 
         if has_hover(emote) and emote['img_animation']:
             logger.error('Emote '+friendly_name(emote)+' is animated and contains a hover. This was never anticipated any output this script generates may be incorrect')
 
         if has_hover(emote) and 'hover-background-image' not in emote:
-            if not os.path.exists(os.path.dirname(get_single_hover_image_path(emote))):
-                os.makedirs(os.path.dirname(get_single_hover_image_path(emote)))
             extracted_single_hover_image = extract_single_hover_image(emote, background_image)
             with open(get_single_hover_image_path(emote), 'wb') as f:
                 extracted_single_hover_image.save(f)
 
-    def _handle_hover_background_for_emote(self, emote, hover_background_image_path, hover_background_image, hover_background_image_width, hover_background_image_height):
+    def _handle_hover_background_for_emote(self, emote, hover_background_image_path, hover_background_image):
         extracted_single_hover_image = extract_single_hover_image(emote,hover_background_image)
-        extracted_single_hover_image_width, extracted_single_hover_image_height = extracted_single_hover_image.size
 
-        if not os.path.exists(os.path.dirname(get_single_hover_image_path(emote))):
-            os.makedirs(os.path.dirname(get_single_hover_image_path(emote)))
-
-        if hover_background_image_width == extracted_single_hover_image_width and hover_background_image_height == extracted_single_hover_image_height:
+        if cmp(hover_background_image.size, extracted_single_hover_image.size) == 0:
             shutil.copyfile(hover_background_image_path, get_single_hover_image_path(emote, hover_background_image.format))
             shutil.copystat(hover_background_image_path, get_single_hover_image_path(emote))
         with open(get_single_hover_image_path(emote), 'wb') as f:
@@ -391,12 +437,11 @@ class BMScraper():
             if is_apng(background_image_data):
                 animated = True;
             background_image = Image.open(open(background_image_path, 'rb'))
-            background_image_width, background_image_height = background_image.size
 
             for emote in emote_group:
                 emote['img_animation'] = animated
                  # TODO: Consider checking if the hover image is animated.
-                self._handle_background_for_emote(emote, background_image_path, background_image, background_image_width, background_image_height)
+                self._handle_background_for_emote(emote, background_image_path, background_image)
 
         key_func = lambda e: e.get('hover-background-image')
         for image_url, emote_group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
@@ -406,10 +451,8 @@ class BMScraper():
 
             hover_background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
             hover_background_image = Image.open(open(hover_background_image_path, 'rb'))
-            hover_background_image_width, hover_background_image_height = hover_background_image.size
-
             for emote in emote_group:
-                self._handle_hover_background_for_emote(emote, hover_background_image_path, hover_background_image, hover_background_image_width, hover_background_image_height)
+                self._handle_hover_background_for_emote(emote, hover_background_image_path, hover_background_image)
 
     def _visually_dedupe_emotes(self):
         logger.info('Beginning to visually dedupe emotes')
@@ -452,6 +495,39 @@ class BMScraper():
 
         self.emotes = [emote for emote in self.emotes if emote not in duplicates]
 
+    def _convert_emote_to_webp(self, emote):
+        if emote['img_animation']:
+            # Converting to webp is a 3 step process for animated emotes
+            # 1. Explode animated .png <- Already done during self._extract_images_from_spritemaps()
+            # 2. Convert all frames to .webp
+            # 3. Reassemble frames into single webp
+            explode_dir = get_explode_directory(emote)
+            frame_files = sorted(glob(os.path.join(explode_dir, 'frame_*.png')))
+            delay_files = sorted(glob(os.path.join(explode_dir, 'frame_*.txt')))
+
+            for frame_file in frame_files:
+                cwebp('-lossless', '-q', '100', frame_file, '-o', os.path.splitext(frame_file)[0] + '.webp')
+
+            args = []
+            args = args + ['-o', os.path.splitext(get_single_image_path(emote))[0] + '.webp']
+            for frame_file, delay_file in zip(frame_files, delay_files):
+                args.append('-frame')
+                args.append(os.path.splitext(frame_file)[0] + '.webp')
+                args.append('+' + str(self._calculate_frame_delay(delay_file)))
+            webpmux(*args)
+        else:
+            cwebp('-lossless', '-q', '100', get_single_image_path(emote),
+                '-o', os.path.splitext(get_single_image_path(emote))[0] + '.webp')
+
+        # TODO: Handle edge case for animated hover images.
+        if has_hover(emote):
+            cwebp('-lossless', '-q', '100', get_single_hover_image_path(emote),
+                '-o', os.path.splitext(get_single_hover_image_path(emote))[0] + '.webp')
+
+    def _convert_emotes_to_webp(self):
+        for emote in self.emotes:
+            self._convert_emote_to_webp(emote)
+
     def _emote_post_preferance(self):
         '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.'''
 
@@ -492,6 +568,7 @@ class BMScraper():
         self._download_images()
         self._extract_images_from_spritemaps()
         self._visually_dedupe_emotes()
+        self._convert_emotes_to_webp()
         self._emote_post_preferance()
         self._remove_garbage()
 

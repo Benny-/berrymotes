@@ -52,7 +52,7 @@ def _extract_single_image(emote, spritemap_img, position_key, width_key, height_
             x = int(raw_x.strip('-').strip('px').strip('%'))
             if '-' not in raw_x and '%' not in raw_x:
                 x = spritemap_width - x
-            # TODO: Potential Unhandled edge case with positive percentage.
+            # TODO: Potential unhandled edge case with positive percentage.
             if raw_x.endswith('%'):
                 x = width * x / 100
 
@@ -61,7 +61,7 @@ def _extract_single_image(emote, spritemap_img, position_key, width_key, height_
             y = int(raw_y.strip('-').strip('px').strip('%'))
             if '-' not in raw_y and '%' not in raw_y:
                 y = spritemap_height - y
-            # TODO: Potential Unhandled edge case with positive percentage.
+            # TODO: Potential unhandled edge case with positive percentage.
             if raw_y.endswith('%'):
                 y = height * y / 100
 
@@ -79,4 +79,17 @@ def extract_single_hover_image(emote, spritemap_img):
     return _extract_single_image(emote, spritemap_img, 'hover-background-position', 'hover-width', 'hover-height')
 
 def friendly_name(emote):
+    '''
+    This function is API locked, it is used to get a unique emote name in a subreddit
+    This name is globally non-unique
+    '''
+    return emote['canonical'].split("/").pop()
+
+def canonical_name(emote):
+    '''
+    This name is globally unique
+    '''
     return emote['canonical']
+
+def get_explode_directory(emote):
+    return os.path.join(os.path.dirname(get_single_image_path(emote)), friendly_name(emote)+"_exploded")
