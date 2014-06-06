@@ -30,8 +30,9 @@ from dateutil import parser
 from PIL import Image
 import pypuzzle
 import shutil
-from sh import apngdis, apngasm, cwebp, webpmux
+from sh import apngasm, cwebp, webpmux
 from glob import glob
+from lxml import etree
 
 import logging
 
@@ -77,6 +78,14 @@ class BMScraper():
             os.remove(get_single_hover_image_path(goner))
         except:
             pass
+
+        try:
+            shutil.rmtree(get_explode_directory(goner))
+        except:
+            pass
+
+        # webp's do not have to be removed here.
+        # webp files do not exist during any of the merge steps.
 
         keeper['names'] = keeper['names'] + goner['names']
         keeper['names'] = _remove_duplicates(keeper['names'])
@@ -346,23 +355,22 @@ class BMScraper():
         if not os.path.exists(explode_dir):
             os.makedirs(explode_dir)
         shutil.copyfile(background_image_path, os.path.join(explode_dir, "background.png"))
-        apngdis(os.path.join(explode_dir, "background.png"), "frame_")
+        apngasm('--force', '-D', os.path.join(explode_dir, "background.png"), "-o", explode_dir, '-j', '-x')
         os.remove(os.path.join(explode_dir, "background.png"))
 
-        frames_paths = sorted(glob(os.path.join(explode_dir, 'frame_*.png')))
+        frames_paths = glob(os.path.join(explode_dir, '*.png'))
         for frame_path in frames_paths:
             background_image = Image.open(frame_path)
             extracted_single_image = extract_single_image(emote, background_image)
             if cmp(background_image.size, extracted_single_image.size) != 0:
                 extracted_single_image.save(frame_path)
 
-    def _calculate_frame_delay(self, delay_file):
+    def _calculate_frame_delay(self, delay_text):
         '''Calucate delay in ms'''
-        delay_text = ""
-        with open(delay_file, 'r') as f:
-            delay_text = f.readline().strip()[6:]
-
-        return int(round(float(delay_text[0:delay_text.index('/')]) / float(delay_text[delay_text.index('/') + 1:]) * 1000))
+        delay = int(round(float(delay_text[0:delay_text.index('/')]) / float(delay_text[delay_text.index('/') + 1:]) * 1000))
+        if delay == 0:
+            delay = 1;
+        return delay
 
     def _reassemble_emote_png(self, emote):
         '''
@@ -370,15 +378,17 @@ class BMScraper():
         Does not handle hover images.
         '''
         explode_dir = get_explode_directory(emote)
-        frame_files = sorted(glob(os.path.join(explode_dir, 'frame_*.png')))
-        delay_files = sorted(glob(os.path.join(explode_dir, 'frame_*.txt')))
-        assert len(frame_files) == len(delay_files)
+        animation_file = os.path.join(explode_dir, 'animation.xml')
+        with open(animation_file, 'r') as f:
+            animation_xml = etree.parse(f).getroot()
 
         args = []
-        args = args + ['-o', get_single_image_path(emote)]
-        for frame_file, delay_file in zip(frame_files, delay_files):
+        args = args + ['--force', '-o', get_single_image_path(emote)]
+        for frame_xml in animation_xml:
+            frame_file = os.path.join(explode_dir,frame_xml.get('src'))
+            delay = self._calculate_frame_delay(frame_xml.get('delay'))
             args.append(frame_file)
-            args.append(self._calculate_frame_delay(delay_file))
+            args.append(delay)
 
         apngasm( *args )
 
@@ -502,18 +512,22 @@ class BMScraper():
             # 2. Convert all frames to .webp
             # 3. Reassemble frames into single webp
             explode_dir = get_explode_directory(emote)
-            frame_files = sorted(glob(os.path.join(explode_dir, 'frame_*.png')))
-            delay_files = sorted(glob(os.path.join(explode_dir, 'frame_*.txt')))
+            frame_files = glob(os.path.join(explode_dir, '*.png'))
+            animation_file = os.path.join(explode_dir, 'animation.xml')
+            with open(animation_file, 'r') as f:
+                animation_xml = etree.parse(f).getroot()
 
             for frame_file in frame_files:
                 cwebp('-lossless', '-q', '100', frame_file, '-o', os.path.splitext(frame_file)[0] + '.webp')
 
             args = []
             args = args + ['-o', os.path.splitext(get_single_image_path(emote))[0] + '.webp']
-            for frame_file, delay_file in zip(frame_files, delay_files):
+            for frame_xml in animation_xml:
+                frame_file = os.path.join(explode_dir, os.path.splitext(frame_xml.get('src'))[0] + '.webp')
+                delay = self._calculate_frame_delay(frame_xml.get('delay'))
                 args.append('-frame')
-                args.append(os.path.splitext(frame_file)[0] + '.webp')
-                args.append('+' + str(self._calculate_frame_delay(delay_file)))
+                args.append(frame_file)
+                args.append('+' + str(delay))
             webpmux(*args)
         else:
             cwebp('-lossless', '-q', '100', get_single_image_path(emote),
