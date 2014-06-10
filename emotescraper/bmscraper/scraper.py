@@ -25,7 +25,6 @@ from os import path
 from .downloadjob import DownloadJob
 from .filenameutils import get_file_path
 from .Emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name, get_explode_directory
-from multiprocessing import cpu_count
 from dateutil import parser
 from PIL import Image
 import pypuzzle
@@ -58,7 +57,7 @@ class BMScraper():
         self.emote_info = []
         self.tags_data = {}
         self.cache_dir = 'cache'
-        self.workers = cpu_count()
+        self.workers = 20
         self.rate_limit_lock = None
 
         self.mutex = threading.RLock()
