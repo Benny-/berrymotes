@@ -398,7 +398,7 @@ class BMScraper():
         if not os.path.exists(os.path.dirname(get_single_image_path(emote))):
             os.makedirs(os.path.dirname(get_single_image_path(emote)))
 
-        if emote['img_animation']:
+        if emote['img_animation'] and not os.path.exists(get_explode_directory(emote)):
             self._explode_emote(emote, background_image_path)
 
         if cmp(background_image.size, extracted_single_image.size) == 0:
@@ -505,42 +505,46 @@ class BMScraper():
 
         self.emotes = [emote for emote in self.emotes if emote not in duplicates]
 
-    def _convert_emote_to_webp(self, emote):
-        if emote['img_animation']:
-            # Converting to webp is a 3 step process for animated emotes
-            # 1. Explode animated .png <- Already done during self._extract_images_from_spritemaps()
-            # 2. Convert all frames to .webp
-            # 3. Reassemble frames into single webp
-            explode_dir = get_explode_directory(emote)
-            frame_files = glob(os.path.join(explode_dir, '*.png'))
-            animation_file = os.path.join(explode_dir, 'animation.xml')
-            with open(animation_file, 'r') as f:
-                animation_xml = etree.parse(f).getroot()
+    def _reassemble_emote__webp(self, emote):
+        # Converting to webp is a 3 step process for animated emotes
+        # 1. Explode animated .png <- Already done during self._extract_images_from_spritemaps()
+        # 2. Convert all frames to .webp
+        # 3. Reassemble frames into single webp
+        explode_dir = get_explode_directory(emote)
+        frame_files = glob(os.path.join(explode_dir, '*.png'))
+        animation_file = os.path.join(explode_dir, 'animation.xml')
+        with open(animation_file, 'r') as f:
+            animation_xml = etree.parse(f).getroot()
 
-            for frame_file in frame_files:
-                cwebp('-lossless', '-q', '100', frame_file, '-o', os.path.splitext(frame_file)[0] + '.webp')
+        for frame_file in frame_files:
+            cwebp('-lossless', '-q', '100', frame_file, '-o', os.path.splitext(frame_file)[0] + '.webp')
 
-            args = []
-            args = args + ['-o', os.path.splitext(get_single_image_path(emote))[0] + '.webp']
-            for frame_xml in animation_xml:
-                frame_file = os.path.join(explode_dir, os.path.splitext(frame_xml.get('src'))[0] + '.webp')
-                delay = self._calculate_frame_delay(frame_xml.get('delay'))
-                args.append('-frame')
-                args.append(frame_file)
-                args.append('+' + str(delay))
-            webpmux(*args)
-        else:
-            cwebp('-lossless', '-q', '100', get_single_image_path(emote),
-                '-o', os.path.splitext(get_single_image_path(emote))[0] + '.webp')
-
-        # TODO: Handle edge case for animated hover images.
-        if has_hover(emote):
-            cwebp('-lossless', '-q', '100', get_single_hover_image_path(emote),
-                '-o', os.path.splitext(get_single_hover_image_path(emote))[0] + '.webp')
+        args = []
+        args = args + ['-o', os.path.splitext(get_single_image_path(emote))[0] + '.webp']
+        for frame_xml in animation_xml:
+            frame_file = os.path.join(explode_dir, os.path.splitext(frame_xml.get('src'))[0] + '.webp')
+            delay = self._calculate_frame_delay(frame_xml.get('delay'))
+            args.append('-frame')
+            args.append(frame_file)
+            args.append('+' + str(delay))
+        webpmux(*args)
 
     def _convert_emotes_to_webp(self):
         for emote in self.emotes:
-            self._convert_emote_to_webp(emote)
+            webp_file_path = os.path.splitext(get_single_image_path(emote))[0] + '.webp'
+            webp_hover_file_path = os.path.splitext(get_single_hover_image_path(emote))[0] + '.webp'
+
+            if not os.path.exists(webp_file_path):
+                if emote['img_animation']:
+                    self._reassemble_emote__webp(emote)
+                else:
+                    cwebp('-lossless', '-q', '100', get_single_image_path(emote),
+                        '-o', webp_file_path)
+
+            # TODO: Handle edge case for animated hover images.
+            if has_hover(emote) and not os.path.exists(webp_hover_file_path):
+                cwebp('-lossless', '-q', '100', get_single_hover_image_path(emote),
+                    '-o', webp_hover_file_path)
 
     def _emote_post_preferance(self):
         '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.'''
