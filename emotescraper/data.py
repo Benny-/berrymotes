@@ -207,6 +207,7 @@ subreddits = [
     "AdagioDazzle",
     "Blossomforth",
     'Mylittleayrl',
+    'MyLittleGlittermotes',
 ]
 
 emote_info = [
