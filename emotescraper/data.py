@@ -1,5 +1,6 @@
 nsfw_subreddits = [
-    "mylittlensfw"
+    "mylittlensfw",
+    "clopmotes",
 ]
 
 image_blacklist = [
@@ -205,9 +206,6 @@ subreddits = [
     "clopmotes",
     "AdagioDazzle",
     "Blossomforth",
-]
-
-subreddits = subreddits + [
     'Mylittleayrl',
 ]
 
