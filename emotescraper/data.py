@@ -188,6 +188,23 @@ subreddits = [
     "vinylscratch",
     "yaxim3",
     "zponymotes",
+    "afterplounge",
+    "appledashquisition",
+    "cadance",
+    "flitterquisition",
+    "hugemotes",
+    "lyraquisition",
+    "maudpie",
+    "mylittleleague",
+    "scratchquisition",
+    "sunsetshimmer",
+    "sweetie_belle",
+    "trixquisition",
+    "twiquisition",
+    "AppleFritter",
+    "clopmotes",
+    "AdagioDazzle",
+    "Blossomforth",
 ]
 
 subreddits = subreddits + [
