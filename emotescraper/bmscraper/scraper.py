@@ -32,6 +32,7 @@ import shutil
 from sh import apngasm, cwebp, webpmux
 from glob import glob
 from lxml import etree
+import execjs
 
 import logging
 
@@ -301,6 +302,76 @@ class BMScraper():
                         self._merge_emotes(subreddit_emote, emote)
                         self.emotes.remove(emote)
 
+    def _add_bpm_tags(self):
+        # Some people prefer to store web data in code instead of json.
+        # This function extracts data from javascript code.
+        def get_globals_from_js(javascript, js_var_names):
+
+            ctx = execjs.compile(javascript)
+            extracted_vars = {}
+            for js_var_name in js_var_names:
+                extracted_vars[js_var_name] = ctx.eval(js_var_name)
+            return extracted_vars
+
+        # bpm stores information using hexidecimals to save some bits
+        # We convert those numbers back to string tags here
+        # Compare to the lookup_core_emote() function in http://rainbow.adery.net/betterponymotes.user.js
+        def expand_BPM_tags(bpm_raw_data):
+            expanded_emotes = {}
+            tag_id2name = bpm_raw_data['tag_id2name']
+            emote_map = bpm_raw_data['emote_map']
+            for name, emote_data in emote_map.iteritems():
+                parts = emote_data.split(',')
+                
+                emote = {}
+                expanded_emotes[name.split("/").pop()] = emote
+                
+                flag_data = parts[0];
+                tag_data = parts[1];
+                
+                flags = int(flag_data[0:1], 16) # Hexadecimal
+                source_id = int(flag_data[1:3], 16); # Hexadecimal
+                size = int(flag_data[3:7], 16); # Hexadecimal
+                # var is_nsfw = (flags & _FLAG_NSFW);
+                is_redirect = False
+                # var is_redirect = (flags & _FLAG_REDIRECT);
+
+                base = None
+
+                tags_ints = [];
+                start = 0;
+                while True:
+                    tag_str = tag_data[start: start+2]
+                    if tag_str == "":
+                        break
+                    tags_ints.append(int(tag_str, 16)) # Hexadecimal
+                    start += 2
+
+                if(is_redirect):
+                    base = parts[2]
+                else:
+                    base = name
+                
+                emote['tags'] = [ tag_id2name[tag_int] for tag_int in tags_ints]
+                
+            return expanded_emotes
+        
+        # This will is not part of any external api. So it might disappear suddenly.
+        bpm_resources_text = self._requests.get("http://rainbow.adery.net/bpm-resources.js").text
+        bpm_raw_data = get_globals_from_js(bpm_resources_text, [
+                                    'sr_id2name',
+                                    'sr_name2id',
+                                    'tag_id2name',
+                                    'tag_name2id',
+                                    'emote_map',
+                                ])
+        bpm_emotes = expand_BPM_tags(bpm_raw_data)
+        
+        for emote in self.emotes:
+            for name in emote['names']:
+                if name in bpm_emotes:
+                    emote['tags'] = emote.get('tags', []) + bpm_emotes[name]['tags']
+
     def _download_images(self):
         logger.debug("Downloading images using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
@@ -497,7 +568,10 @@ class BMScraper():
                         continue
 
                     distance = puzzle.get_distance_from_cvec(vector, other_vector)
-                    if( distance < 0.01 ):
+                    if( distance > 0 ):
+                        pass # Images are not equal.
+                    else:
+                        # Images are equal! Lets merge them.
                         self._merge_emotes(other_emote, emote)
                         duplicates.append(emote)
                 processed_emotes.append((emote, puzzle.compress_cvec(vector)))
@@ -582,6 +656,7 @@ class BMScraper():
         self._fetch_css()
         self._process_stylesheets()
         self._dedupe_emotes()
+        self._add_bpm_tags()
         self._download_images()
         self._extract_images_from_spritemaps()
         self._visually_dedupe_emotes()

@@ -11,6 +11,9 @@ External dependencies for pypuzzle:
 External dependencies for lxml:
     http://lxml.de/installation.html#requirements
 
+PyExecJS requires a JavaScript execution environment:
+    See 'PyExecJS supports these runtimes' in https://github.com/doloopwhile/PyExecJS
+
 The following programs must exist in your path for apng handling
     apngasm https://github.com/apngasm/apngasm (Use a recent version like v3.1.3 or later)
 
