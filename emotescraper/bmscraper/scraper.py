@@ -315,7 +315,7 @@ class BMScraper():
 
         # bpm stores information using hexidecimals to save some bits
         # We convert those numbers back to string tags here
-        # Compare to the lookup_core_emote() function in http://rainbow.adery.net/betterponymotes.user.js
+        # Compare to the lookup_core_emote() function in https://ponymotes.net/betterponymotes.user.js
         def expand_BPM_tags(bpm_raw_data):
             expanded_emotes = {}
             tag_id2name = bpm_raw_data['tag_id2name']
@@ -356,8 +356,8 @@ class BMScraper():
                 
             return expanded_emotes
         
-        # This will is not part of any external api. So it might disappear suddenly.
-        bpm_resources_text = self._requests.get("http://rainbow.adery.net/bpm-resources.js").text
+        # This is not part of any external api. So it might disappear suddenly.
+        bpm_resources_text = self._requests.get("https://ponymotes.net/bpm-resources.js").text
         bpm_raw_data = get_globals_from_js(bpm_resources_text, [
                                     'sr_id2name',
                                     'sr_name2id',
