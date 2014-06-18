@@ -24,7 +24,7 @@ import os
 from os import path
 from .downloadjob import DownloadJob
 from .filenameutils import get_file_path
-from .Emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name, get_explode_directory
+from .Emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name, canonical_name, get_explode_directory
 from dateutil import parser
 from PIL import Image
 import pypuzzle
@@ -67,7 +67,7 @@ class BMScraper():
         self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.0 by /u/marminatoror'}
 
     def _merge_emotes(self, keeper, goner):
-        logger.debug('Merging '+friendly_name(goner)+' into '+friendly_name(keeper))
+        logger.debug('Merging '+canonical_name(goner)+' into '+canonical_name(keeper))
 
         try:
             os.remove(get_single_image_path(goner))
