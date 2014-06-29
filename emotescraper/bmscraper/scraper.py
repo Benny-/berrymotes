@@ -29,7 +29,7 @@ from dateutil import parser
 from PIL import Image
 import pypuzzle
 import shutil
-from sh import apngasm, cwebp, webpmux
+from sh import apngasm, cwebp, webpmux, apng2webp
 from glob import glob
 from lxml import etree
 import execjs
@@ -610,6 +610,20 @@ class BMScraper():
             if not os.path.exists(webp_file_path):
                 if emote['img_animation']:
                     self._reassemble_emote__webp(emote)
+                    apng2webp(get_single_image_path(emote), '/tmp/tmp.webp')
+                    
+                    size_apng2webp_webp = os.path.getsize("/tmp/tmp.webp")
+                    size_reassemble_webp = os.path.getsize(webp_file_path)
+                    size_difference_percentage = size_apng2webp_webp/(size_reassemble_webp/100.0)
+                    
+                    logger.debug(canonical_name(emote))
+                    logger.debug('size_reassemble_webp : '+str(size_reassemble_webp))
+                    logger.debug('size_apng2webp_webp  : '+str(size_apng2webp_webp)+' apng2webp size difference: '+str(size_difference_percentage))
+                    
+                    if size_apng2webp_webp > size_reassemble_webp:
+                        logger.warn('size_apng2webp_webp created bigger size for emote '+canonical_name(emote))
+                    else:
+                        shutil.copy('/tmp/tmp.webp', webp_file_path)
                 else:
                     cwebp('-lossless', '-q', '100', get_single_image_path(emote),
                         '-o', webp_file_path)

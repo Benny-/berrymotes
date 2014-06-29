@@ -20,6 +20,9 @@ The following programs must exist in your path for apng handling
 The following programs must exist in your path for webp assembling
     cwebp, webpmux https://developers.google.com/speed/webp/
 
+The following program must exist in your path for animated webp assembling
+    apng2webp https://github.com/Benny-/apng2webp
+
 Python dependecies
 ########################
 

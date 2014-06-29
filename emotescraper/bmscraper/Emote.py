@@ -81,7 +81,7 @@ def extract_single_hover_image(emote, spritemap_img):
 def friendly_name(emote):
     '''
     This function is API locked, it is used to get a unique emote name in a subreddit
-    This name is globally non-unique
+    This name is not globally unique
     '''
     return emote['canonical'].split("/").pop()
 
