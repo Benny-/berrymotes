@@ -9,11 +9,5 @@ nosetests.xml
 
 Thumbs.db
 
-single_emotes/
-
-js/berrymotes_data.js
-js/berrymotes_data.json
-js/berrymotes_data.min.js
-js/berrymotes_data.min.json
-js/berrymotes_colour_data.js
+/reddit_emote_scraper/output
 

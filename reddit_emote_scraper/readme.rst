@@ -1,5 +1,10 @@
 
-External dependecies
+Reddit emote scraper
+------------------------
+
+Some subreddit have emotes. This script harvest emotes from multiple subreddits and outputs them in a directory as images and a json file.
+
+External dependencies
 ########################
 
 External dependencies for Pillow:
@@ -23,7 +28,7 @@ The following programs must exist in your path for webp assembling
 The following program must exist in your path for animated webp assembling
     apng2webp https://github.com/Benny-/apng2webp
 
-Python dependecies
+Python dependencies
 ########################
 
 pip install -r requirements.pip
