@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 from bmscraper import BMScraper
 
 from data import subreddits, image_blacklist, nsfw_subreddits, emote_info
+from sys import path
 import pickle
 import json
 
@@ -42,7 +43,7 @@ scraper.scrape()
 logger.info("Finished scrape in {}.".format(time.time() - start))
 emotes = scraper.export_emotes()
 
-FILENAME = "emotes_metadata"
+FILENAME = path.join('output', "emotes_metadata")
 with open(FILENAME + '.min.js', 'w') as f:
     f.write("var emotes_metadata = ")
     json.dump(emotes, fp=f, separators=(',', ':'))
@@ -67,3 +68,4 @@ with open(FILENAME + '.pickle_v1', "wb") as f:
 
 with open(FILENAME + '.pickle_v2', "wb") as f:
     pickle.dump(emotes, file=f, protocol=2)
+
