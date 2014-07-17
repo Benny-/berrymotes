@@ -484,7 +484,7 @@ class BMScraper():
         if has_hover(emote) and emote['img_animation']:
             logger.error('Emote '+friendly_name(emote)+' is animated and contains a hover. This was never anticipated any output this script generates may be incorrect')
 
-        if has_hover(emote) and 'hover-background-image' not in emote:
+        if has_hover(emote) and 'hover-background-image' not in emote and not os.path.exists(get_single_hover_image_path(emote)):
             extracted_single_hover_image = extract_single_hover_image(emote, background_image)
             with open(get_single_hover_image_path(emote), 'wb') as f:
                 extracted_single_hover_image.save(f)
@@ -599,7 +599,7 @@ class BMScraper():
             delay = self._calculate_frame_delay(frame_xml.get('delay'))
             args.append('-frame')
             args.append(frame_file)
-            args.append('+' + str(delay))
+            args.append('+' + str(delay) + '+0+0+1-b')
         webpmux(*args)
 
     def _convert_emotes_to_webp(self):
@@ -612,17 +612,19 @@ class BMScraper():
                     self._reassemble_emote__webp(emote)
                     apng2webp(get_single_image_path(emote), '/tmp/tmp.webp')
                     
+                    size_apng = os.path.getsize(get_single_image_path(emote))
                     size_apng2webp_webp = os.path.getsize("/tmp/tmp.webp")
                     size_reassemble_webp = os.path.getsize(webp_file_path)
                     size_difference_percentage = size_apng2webp_webp/(size_reassemble_webp/100.0)
                     
-                    logger.debug(canonical_name(emote))
-                    logger.debug('size_reassemble_webp : '+str(size_reassemble_webp))
-                    logger.debug('size_apng2webp_webp  : '+str(size_apng2webp_webp)+' apng2webp size difference: '+str(size_difference_percentage))
+                    logger.debug(canonical_name(emote) + 'size_reassemble_webp : '+str(size_reassemble_webp))
+                    logger.debug(canonical_name(emote) + 'size_apng2webp_webp  : '+str(size_apng2webp_webp)+' apng2webp/reassemble_webp size difference: '+str(size_difference_percentage))
                     
                     if size_apng2webp_webp > size_reassemble_webp:
                         logger.warn('size_apng2webp_webp created bigger size for emote '+canonical_name(emote))
+                        logger.debug(canonical_name(emote) + 'size_apng            : '+str(size_apng) + ' apng/reassemble_webp size difference: '+str(size_reassemble_webp/(size_apng/100.0)))
                     else:
+                        logger.debug(canonical_name(emote) + 'size_apng            : '+str(size_apng) + ' apng/apng2webp_webp size difference: '+str(size_apng2webp_webp/(size_apng/100.0)))
                         shutil.copy('/tmp/tmp.webp', webp_file_path)
                 else:
                     cwebp('-lossless', '-q', '100', get_single_image_path(emote),
@@ -634,7 +636,7 @@ class BMScraper():
                     '-o', webp_hover_file_path)
 
     def _emote_post_preferance(self):
-        '''A emote's first name will be used to post. Some names are preferred over other names. We re-order the names here.'''
+        '''A emote's first name will be used for posting. Some names are preferred over other names. We re-order the names here.'''
 
         # We push all the numbered names back. They are generally not very descriptive.
         for emote in self.emotes:
