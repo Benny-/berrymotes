@@ -12,7 +12,7 @@ def get_single_image_path(emote, extension=None):
     else:
         extension = 'png'
 
-    return os.path.join( *(['output', 'images']+((emote['canonical']+"."+extension).split('/'))))
+    return os.path.join( *(['output']+((emote['canonical']+"."+extension).split('/'))))
 
 # Please note: A emote's hover image is optional.
 # There is no guarantee this image exists.
@@ -25,7 +25,7 @@ def get_single_hover_image_path(emote, extension=None):
     else:
         extension = 'png'
 
-    return os.path.join( *(['output', 'images']+((emote['canonical']+"_hover."+extension).split('/'))))
+    return os.path.join( *(['output']+((emote['canonical']+"_hover."+extension).split('/'))))
 
 def _extract_single_image(emote, spritemap_img, position_key, width_key, height_key):
     spritemap_width = spritemap_img.size[0]
