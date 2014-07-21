@@ -33,6 +33,7 @@ from sh import apngasm, cwebp, webpmux, apng2webp
 from glob import glob
 from lxml import etree
 import execjs
+import tempfile
 
 import logging
 
@@ -603,37 +604,43 @@ class BMScraper():
         webpmux(*args)
 
     def _convert_emotes_to_webp(self):
-        for emote in self.emotes:
-            webp_file_path = os.path.splitext(get_single_image_path(emote))[0] + '.webp'
-            webp_hover_file_path = os.path.splitext(get_single_hover_image_path(emote))[0] + '.webp'
 
-            if not os.path.exists(webp_file_path):
-                if emote['img_animation']:
-                    self._reassemble_emote__webp(emote)
-                    apng2webp(get_single_image_path(emote), '/tmp/tmp.webp')
-                    
-                    size_apng = os.path.getsize(get_single_image_path(emote))
-                    size_apng2webp_webp = os.path.getsize("/tmp/tmp.webp")
-                    size_reassemble_webp = os.path.getsize(webp_file_path)
-                    size_difference_percentage = size_apng2webp_webp/(size_reassemble_webp/100.0)
-                    
-                    logger.debug(canonical_name(emote) + 'size_reassemble_webp : '+str(size_reassemble_webp))
-                    logger.debug(canonical_name(emote) + 'size_apng2webp_webp  : '+str(size_apng2webp_webp)+' apng2webp/reassemble_webp size difference: '+str(size_difference_percentage))
-                    
-                    if size_apng2webp_webp > size_reassemble_webp:
-                        logger.warn('size_apng2webp_webp created bigger size for emote '+canonical_name(emote))
-                        logger.debug(canonical_name(emote) + 'size_apng            : '+str(size_apng) + ' apng/reassemble_webp size difference: '+str(size_reassemble_webp/(size_apng/100.0)))
+        fd, temp_webp_path = tempfile.mkstemp(suffix=".webp")
+        
+        try:
+            for emote in self.emotes:
+                webp_file_path = os.path.splitext(get_single_image_path(emote))[0] + '.webp'
+                webp_hover_file_path = os.path.splitext(get_single_hover_image_path(emote))[0] + '.webp'
+
+                if not os.path.exists(webp_file_path):
+                    if emote['img_animation']:
+                        self._reassemble_emote__webp(emote)
+                        apng2webp(get_single_image_path(emote), temp_webp_path)
+                        
+                        size_apng = os.path.getsize(get_single_image_path(emote))
+                        size_apng2webp_webp = os.path.getsize(temp_webp_path)
+                        size_reassemble_webp = os.path.getsize(webp_file_path)
+                        size_difference_percentage = size_apng2webp_webp/(size_reassemble_webp/100.0)
+                        
+                        logger.debug(canonical_name(emote) + ' size_reassemble_webp : '+str(size_reassemble_webp))
+                        logger.debug(canonical_name(emote) + ' size_apng2webp_webp  : '+str(size_apng2webp_webp)+' apng2webp/reassemble_webp size difference: '+str(size_difference_percentage))
+                        
+                        if size_apng2webp_webp > size_reassemble_webp:
+                            logger.warn('size_apng2webp_webp created bigger size for emote '+canonical_name(emote))
+                            logger.debug(canonical_name(emote) + ' size_apng            : '+str(size_apng) + ' apng/reassemble_webp size difference: '+str(size_reassemble_webp/(size_apng/100.0)))
+                        else:
+                            logger.debug(canonical_name(emote) + ' size_apng            : '+str(size_apng) + ' apng/apng2webp_webp size difference: '+str(size_apng2webp_webp/(size_apng/100.0)))
+                            shutil.copy(temp_webp_path, webp_file_path)
                     else:
-                        logger.debug(canonical_name(emote) + 'size_apng            : '+str(size_apng) + ' apng/apng2webp_webp size difference: '+str(size_apng2webp_webp/(size_apng/100.0)))
-                        shutil.copy('/tmp/tmp.webp', webp_file_path)
-                else:
-                    cwebp('-lossless', '-q', '100', get_single_image_path(emote),
-                        '-o', webp_file_path)
+                        cwebp('-lossless', '-q', '100', get_single_image_path(emote),
+                            '-o', webp_file_path)
 
-            # TODO: Handle edge case for animated hover images.
-            if has_hover(emote) and not os.path.exists(webp_hover_file_path):
-                cwebp('-lossless', '-q', '100', get_single_hover_image_path(emote),
-                    '-o', webp_hover_file_path)
+                # TODO: Handle edge case for animated hover images.
+                if has_hover(emote) and not os.path.exists(webp_hover_file_path):
+                    cwebp('-lossless', '-q', '100', get_single_hover_image_path(emote),
+                        '-o', webp_hover_file_path)
+        finally:
+            os.remove(temp_webp_path)
 
     def _emote_post_preferance(self):
         '''A emote's first name will be used for posting. Some names are preferred over other names. We re-order the names here.'''
