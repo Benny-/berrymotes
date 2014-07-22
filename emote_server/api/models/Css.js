@@ -9,6 +9,13 @@ module.exports = {
 
   attributes: {
 
+    css_key: 'STRING',
+    css_value: 'STRING',
+
+    emote: {
+      model: 'emote',
+    },
+
   }
 };
 

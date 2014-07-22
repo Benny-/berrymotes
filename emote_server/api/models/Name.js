@@ -9,6 +9,16 @@ module.exports = {
 
   attributes: {
 
+    name: {
+        type: 'STRING',
+        primaryKey: true,
+        required: true
+    },
+
+    emote: {
+        model: 'emote',
+    },
+
   }
 };
 

@@ -9,6 +9,13 @@ module.exports = {
 
   attributes: {
 
+    name: 'STRING',
+
+    emote: {
+      collection: 'emote',
+      via: 'tags',
+    },
+
   }
 };
 
