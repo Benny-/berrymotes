@@ -580,6 +580,7 @@ class BMScraper():
         self.emotes = [emote for emote in self.emotes if emote not in duplicates]
 
     def _reassemble_emote__webp(self, emote):
+        '''Convert a animated emote image to a animate webp image. Does not handle hover emotes.'''
         # Converting to webp is a 3 step process for animated emotes
         # 1. Explode animated .png <- Already done during self._extract_images_from_spritemaps()
         # 2. Convert all frames to .webp
@@ -603,6 +604,24 @@ class BMScraper():
             args.append('+' + str(delay) + '+0+0+1-b')
         webpmux(*args)
 
+    def _maby_convert_emote_webp(self, emote):
+        '''
+        This function may convert a non-animated emote image to a .webp if it yields any benefits (in size).
+        See _reassemble_emote__webp() for converting a animated emote image.
+        Does not handle hover emotes.
+        '''
+        webp_file_path = os.path.splitext(get_single_image_path(emote))[0] + '.webp'
+        
+        cwebp('-lossless', '-q', '100', get_single_image_path(emote),
+            '-o', webp_file_path)
+
+        size_non_webp = os.path.getsize(get_single_image_path(emote))
+        size_webp = os.path.getsize(webp_file_path)
+        
+        if size_webp > size_non_webp:
+            os.remove(webp_file_path)
+            logger.debug(get_single_image_path(emote)+' could not create a smaller webp file')
+
     def _convert_emotes_to_webp(self):
 
         fd, temp_webp_path = tempfile.mkstemp(suffix=".webp")
@@ -611,7 +630,7 @@ class BMScraper():
             for emote in self.emotes:
                 webp_file_path = os.path.splitext(get_single_image_path(emote))[0] + '.webp'
                 webp_hover_file_path = os.path.splitext(get_single_hover_image_path(emote))[0] + '.webp'
-
+                
                 if not os.path.exists(webp_file_path):
                     if emote['img_animation']:
                         self._reassemble_emote__webp(emote)
@@ -632,9 +651,8 @@ class BMScraper():
                             logger.debug(canonical_name(emote) + ' size_apng            : '+str(size_apng) + ' apng/apng2webp_webp size difference: '+str(size_apng2webp_webp/(size_apng/100.0)))
                             shutil.copy(temp_webp_path, webp_file_path)
                     else:
-                        cwebp('-lossless', '-q', '100', get_single_image_path(emote),
-                            '-o', webp_file_path)
-
+                        self._maby_convert_emote_webp(emote)
+                
                 # TODO: Handle edge case for animated hover images.
                 if has_hover(emote) and not os.path.exists(webp_hover_file_path):
                     cwebp('-lossless', '-q', '100', get_single_hover_image_path(emote),
