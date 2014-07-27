@@ -216,6 +216,7 @@ subreddits = [
     "AdagioDazzle",
     "Blossomforth",
     "RateMyOC",
+    "gamequisition",
 ]
 
 emote_info = [
