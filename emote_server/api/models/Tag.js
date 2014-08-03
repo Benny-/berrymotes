@@ -7,15 +7,19 @@
 
 module.exports = {
 
-  attributes: {
+    attributes: {
 
-    name: 'STRING',
+        name: {
+            type: 'STRING',
+            primaryKey: true,
+            required: true,
+        },
 
-    emote: {
-      collection: 'emote',
-      via: 'tags',
-    },
+        emotes: {
+            collection: 'emote',
+            via: 'tags',
+        },
 
-  }
+    }
 };
 

@@ -29,6 +29,10 @@ module.exports.connections = {
     adapter: 'sails-disk'
   },
 
+  memory: {
+    adapter: 'sails-memory'
+  },
+
   // MySQL is the world's most popular relational database.
   // http://en.wikipedia.org/wiki/MySQL
   //
@@ -66,10 +70,10 @@ module.exports.connections = {
   //
   somePostgresqlServer: {
     adapter: 'sails-postgresql',
-    host: 'YOUR_POSTGRES_SERVER_HOSTNAME_OR_IP_ADDRESS',
-    user: 'YOUR_POSTGRES_USER',
-    password: 'YOUR_POSTGRES_PASSWORD',
-    database: 'YOUR_POSTGRES_DB'
+    host: 'localhost',
+    user: 'sails',
+    password: 'olantlingra',
+    database: 'emotes'
   }
 
 

@@ -7,30 +7,38 @@
 
 module.exports = {
 
-  attributes: {
-
-    width_px: 'INT',
-    height_px: 'INT',
-    animated: 'BOOLEAN',
-    file_type: 'STRING',
-    creation_date: 'DATETIME',
-    updated_date: 'DATETIME',
-    canonical_name: {
-        type: 'STRING',
-        unique: true,
-    },
-
-    css: {
-      collection: 'css',
-      via: 'emote',
-    },
-
-    tags: {
-      collection: 'tag',
-      via: 'emote',
-      dominant: true,
-    },
-
-  }
+    attributes: {
+        
+        canonical_name: {
+            type: 'STRING',
+            index: true,
+            unique: true,
+        },
+        
+        width: 'INT',
+        height: 'INT',
+        "hover-width": 'INT',
+        "hover-height": 'INT',
+        img_animation: 'BOOLEAN',
+        hover_animation: 'BOOLEAN',
+        single_image_extension: 'STRING',
+        single_hover_image_extension: 'STRING',
+        src: 'STRING',
+        
+        css: {
+            type: 'JSON',
+        },
+        
+        tags: {
+            collection: 'tag',
+            via: 'emotes',
+            dominant: true,
+        },
+        
+        names: {
+            collection: 'name',
+            via: 'emote',
+        },
+    }
 };
 
