@@ -36,7 +36,7 @@ scraper.image_blacklist = image_blacklist
 scraper.nsfw_subreddits = nsfw_subreddits
 scraper.emote_info = emote_info
 scraper.rate_limit_lock = TokenBucket(15, 30)
-scraper.tags_data = requests.get("http://btc.berrytube.tv/berrymotes/data.js").json()
+scraper.tags_data = requests.get("http://berrymotes.com/assets/data.js").json()
 
 start = time.time()
 scraper.scrape()
