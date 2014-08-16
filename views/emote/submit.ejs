@@ -1,10 +1,12 @@
 <!-- Default home page -->
 <link type="text/css" href='http://sailsjs.org/styles/fonts.css' rel='stylesheet'/>
+
 <script type="text/javascript">
 setTimeout(function sunrise () {
     document.getElementsByClassName('header')[0].style.backgroundColor = '#118798';
 }, 0);
 </script>
+<script src="http://tomasdostal.com/projects/html5ImagePreview/html5.image.preview.js"></script>
 
 <div class="default-page">
     <div class="header">
@@ -12,8 +14,52 @@ setTimeout(function sunrise () {
         <h3 class="container">You're looking at: <code><%= view.pathFromApp + '.' +view.ext %></code></h3>
     </div>
     <div class="main container clearfix">
-        <p><%= __("Don't worry, we've got your back. Submitting a new emoticon is easy. Just fill out this form:") %></p>
-        <p>TODO: Put a form here</p>
+        <p><%= __("Fill out this form to submit a new emoticon:") %></p>
+        <form action="/emote/submit" enctype="multipart/form-data" method="post">
+        
+            <div>
+                <label for="canonical_name">A unique unused canonical name*</label>
+                <input type="text" name="canonical_name" required placeholder="r/foo/bar/sorrysocks">
+            </div>
+            
+            <div>
+                <label for="names">Names*</label>
+                <textarea name="names" placeholder="sorrysocks, bendforward, yellowsorry"></textarea>
+            </div>
+            
+            <div>
+                <label for="css">CSS rules</label>
+                <textarea name="css"></textarea>
+            </div>
+            
+            <div>
+                <label for="tags">Tags</label>
+                <textarea name="tags" placeholder="socks, fluttershy, kneel, shy"></textarea>
+            </div>
+            
+            <div>
+                <label for="src">Image source</label>
+                <input type="url" name="src" placeholder="https://deviantart.com/art/Sockie-Flutter-Shy-372581382">
+            </div>
+            
+            <div>
+                <label for="emoticon_image">Emote image*</label>
+                <input type="file" name="emoticon_image" required onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <div class="imagePreview"></div>
+            </div>
+            
+            <div>
+                <label for="emoticon_image_hover">Hover image</label>
+                <input type="file" name="emoticon_image_hover" onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <div class="imagePreview"></div>
+            </div>
+            
+            <div>
+                <input type="submit" >
+                <input type="reset" >
+            </div>
+        </form>
+        
     </div>
 </div>
 

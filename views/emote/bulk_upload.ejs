@@ -14,7 +14,7 @@ setTimeout(function sunrise () {
     <div class="main container clearfix">
         <p><%= __("This form expects a json file from the reddit_emote_scraper program") %></p>
         <form action="/emote/bulk_upload" enctype="multipart/form-data" method="post">
-            <input type="file" name="json_emote_file" multiple="multiple"><br>
+            <input type="file" name="json_emote_file"><br>
             <input type="submit" value="Upload">
         </form>
     </div>
