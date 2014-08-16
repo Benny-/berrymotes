@@ -101,7 +101,7 @@ module.exports = {
                     console.warn("catch","Something bad happened: " + err)
                 })
                 .done( function() {
-                    console.log("Done", arguments)
+                    console.log("Done")
                 });
 
                 res.json({
@@ -113,14 +113,17 @@ module.exports = {
     }
     else
     {
-      res.writeHead(200, {'content-type': 'text/html'});
-      res.end(
-      '<p>This form expects a json file from the reddit_emote_scraper program</p>'+
-      '<form action="/emote/bulk_upload" enctype="multipart/form-data" method="post">'+
-      '<input type="file" name="json_emote_file" multiple="multiple"><br>'+
-      '<input type="submit" value="Upload">'+
-      '</form>'
-      )
+      return res.view();
+    }
+  },
+  
+  submit: function (req,res) {
+    if(req.is('multipart/form-data')) {
+      res.serverError('Not yet implemented');
+    }
+    else
+    {
+      return res.view();
     }
   },
 };

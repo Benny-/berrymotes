@@ -1,0 +1,19 @@
+<!-- Default home page -->
+<link type="text/css" href='http://sailsjs.org/styles/fonts.css' rel='stylesheet'/>
+<script type="text/javascript">
+setTimeout(function sunrise () {
+    document.getElementsByClassName('header')[0].style.backgroundColor = '#118798';
+}, 0);
+</script>
+
+<div class="default-page">
+    <div class="header">
+        <h1 id="main-title" class="container"><%= __('Submit new emoticon') %></h1>
+        <h3 class="container">You're looking at: <code><%= view.pathFromApp + '.' +view.ext %></code></h3>
+    </div>
+    <div class="main container clearfix">
+        <p><%= __("Don't worry, we've got your back. Submitting a new emoticon is easy. Just fill out this form:") %></p>
+        <p>TODO: Put a form here</p>
+    </div>
+</div>
+
