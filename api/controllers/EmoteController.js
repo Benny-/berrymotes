@@ -81,7 +81,7 @@ module.exports = {
             if (err)
                 return res.serverError(err);
 
-            fs.readFile( path.join('.tmp', 'uploads', files[0].filename), { encoding : 'utf-8', flag: 'r' }, function(err, data) {
+            fs.readFile( files[0].fd, { encoding : 'utf-8', flag: 'r' }, function(err, data) {
               
                 if(err) {
                     res.writeHead(500, {'content-type': 'text'});
