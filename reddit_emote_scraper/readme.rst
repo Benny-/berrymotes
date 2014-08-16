@@ -31,10 +31,14 @@ The following program must exist in your path for animated webp assembling
 Python dependencies
 ########################
 
-pip install -r requirements.pip
+.. code:: bash
+
+    pip install -r requirements.pip
 
 Running
 ########################
 
-python ./scrape.py
+.. code:: bash
+
+    python ./scrape.py
 
