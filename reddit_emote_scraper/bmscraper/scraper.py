@@ -12,6 +12,8 @@
 #
 # --------------------------------------------------------------------
 from datetime import datetime, timedelta
+import time
+from email.utils import parsedate
 from dateutil.tz import tzutc
 import requests
 from workerpool import WorkerPool
@@ -21,7 +23,7 @@ import re
 from collections import defaultdict
 import itertools
 import os
-from os import path
+from os import path, utime
 from .downloadjob import DownloadJob
 from .filenameutils import get_file_path
 from .Emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name, canonical_name, get_explode_directory
@@ -136,7 +138,9 @@ class BMScraper():
             return
 
         text = response.text.encode('utf-8')
-
+        modified_date_tuple = parsedate(response.headers['Last-Modified'])
+        modified_date_timestamp = time.mktime(modified_date_tuple)
+        
         css_cache_file_path = get_file_path(response.url, rootdir=self.cache_dir )
         with self.mutex:
             if not os.path.exists(os.path.dirname(css_cache_file_path)):
@@ -145,6 +149,8 @@ class BMScraper():
 
         with open( css_cache_file_path, 'w' ) as f:
             f.write( text )
+
+        utime(css_cache_file_path, (time.time(), modified_date_timestamp))
 
         os.symlink(os.path.relpath(css_cache_file_path, 'css/'), css_subreddit_path );
 
@@ -408,12 +414,17 @@ class BMScraper():
 
         image_dir = path.dirname(image_path)
 
+        modified_date_tuple = parsedate(response.headers['Last-Modified'])
+        modified_date_timestamp = time.mktime(modified_date_tuple)
+
         with self.mutex:
             if not path.exists(image_dir):
                 os.makedirs(image_dir)
 
         with open(image_path, 'wb') as f:
             f.write(data)
+
+        utime(image_path, (time.time(), modified_date_timestamp))
 
     def _explode_emote(self, emote, background_image_path):
         '''
