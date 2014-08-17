@@ -220,6 +220,9 @@ subreddits = [
     "Blossomforth",
     "RateMyOC",
     "gamequisition",
+    "MildLyPony",
+    "SGaP",
+    "mlpoc",
 ]
 
 emote_info = [
