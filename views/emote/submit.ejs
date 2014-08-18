@@ -19,38 +19,38 @@ setTimeout(function sunrise () {
         
             <div>
                 <label for="canonical_name">A unique unused canonical name*</label>
-                <input type="text" name="canonical_name" required placeholder="r/foo/bar/sorrysocks">
+                <input id="canonical_name" type="text" name="canonical_name" required placeholder="r/foo/bar/sorrysocks">
             </div>
             
             <div>
                 <label for="names">Names*</label>
-                <textarea name="names" placeholder="sorrysocks, bendforward, yellowsorry"></textarea>
+                <textarea id="names" name="names" placeholder="sorrysocks, bendforward, yellowsorry"></textarea>
             </div>
             
             <div>
                 <label for="css">CSS rules</label>
-                <textarea name="css"></textarea>
+                <textarea id="css" name="css" placeholder="Not yet implemented" readonly></textarea>
             </div>
             
             <div>
                 <label for="tags">Tags</label>
-                <textarea name="tags" placeholder="socks, fluttershy, kneel, shy"></textarea>
+                <textarea id="tags" name="tags" placeholder="socks, fluttershy, kneel, shy"></textarea>
             </div>
             
             <div>
                 <label for="src">Image source</label>
-                <input type="url" name="src" placeholder="https://deviantart.com/art/Sockie-Flutter-Shy-372581382">
+                <input id="src" type="url" name="src" placeholder="https://deviantart.com/art/Sockie-Flutter-Shy-372581382">
             </div>
             
             <div>
                 <label for="emoticon_image">Emote image*</label>
-                <input type="file" name="emoticon_image" required onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <input id="emoticon_image" type="file" name="emoticon_images" required onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>
             </div>
             
             <div>
                 <label for="emoticon_image_hover">Hover image</label>
-                <input type="file" name="emoticon_image_hover" onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <input id="emoticon_image_hover" type="file" name="emoticon_images" onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>
             </div>
             
