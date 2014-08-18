@@ -119,11 +119,44 @@ module.exports = {
   
   submit: function (req,res) {
     if(req.is('multipart/form-data')) {
-      res.serverError('Not yet implemented');
+        req.file('emoticon_images').upload(function (err, files) {
+            if (err)
+                return res.serverError(err);
+            
+            canonical_name = req.body.canonical_name
+            names = req.body.names
+            css = req.body.css
+            tags = req.body.tags
+            src = req.body.src
+            
+            Emote.create(
+                {
+                    canonical_name: canonical_name,
+                    src: src,
+                }
+            )
+            .then( function(emote) {
+                // TODO: Add tags.
+                // TODO: Add names.
+                // TODO: Add CSS.
+                return emote
+            })
+            .then( function(emote) {
+                res.json( {msg:"Successfully added emote",emote:emote})
+            })
+            .catch(function(err) {
+                res.serverError('Something went wrong. ' + err);
+            })
+            .done()
+            
+            emoticon_image = files[0]
+            emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
+            // TODO: Move files somewhere.
+        });
     }
     else
     {
-      return res.view();
+        return res.view();
     }
   },
 };
