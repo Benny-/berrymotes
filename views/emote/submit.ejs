@@ -1,11 +1,15 @@
-<!-- Default home page -->
+
 <link type="text/css" href='http://sailsjs.org/styles/fonts.css' rel='stylesheet'/>
+
+<script src="https://code.jquery.com/jquery-2.1.1.js"></script>
 
 <script type="text/javascript">
 setTimeout(function sunrise () {
     document.getElementsByClassName('header')[0].style.backgroundColor = '#118798';
 }, 0);
 </script>
+
+<!-- TODO: Make a local copy of this scrip -->
 <script src="http://tomasdostal.com/projects/html5ImagePreview/html5.image.preview.js"></script>
 
 <div class="default-page">
@@ -22,19 +26,22 @@ setTimeout(function sunrise () {
                 <input id="canonical_name" type="text" name="canonical_name" required placeholder="r/foo/bar/sorrysocks">
             </div>
             
-            <div>
-                <label for="names">Names*</label>
-                <textarea id="names" name="names" placeholder="sorrysocks, bendforward, yellowsorry"></textarea>
+            <button id="add_name">Add name</button>
+            <div id="names_container">
+                <label for="names">Name(s)*</label>
+                <input id="names" name="names">
             </div>
             
-            <div>
-                <label for="css">CSS rules</label>
-                <textarea id="css" name="css" placeholder="Not yet implemented" readonly></textarea>
+            <button id="add_css">Add css rule</button>
+            <div id="css_rules_container">
+                <label for="css">CSS rule(s)</label>
+                <input id="css" name="css">
             </div>
             
-            <div>
-                <label for="tags">Tags</label>
-                <textarea id="tags" name="tags" placeholder="socks, fluttershy, kneel, shy"></textarea>
+            <button id="add_tag">Add tags</button>
+            <div id="tags_container">
+                <label for="tags">Tag(s)</label>
+                <input id="tags" name="tags">
             </div>
             
             <div>
@@ -62,4 +69,34 @@ setTimeout(function sunrise () {
         
     </div>
 </div>
+
+<script type="text/javascript">
+(function() {
+
+    var tags_container = $("#tags_container");
+    var css_rules_container = $("#css_rules_container");
+    var names_container = $("#names_container");
+    
+    $("#add_name").click(function (e) {
+      names_container.append('<div><input id="names" name="names"><button  class="delete">Delete</button></div>');
+      return false
+    });
+    
+    $("#add_tag").click(function (e) {
+      tags_container.append('<div><input id="tags" name="tags"><button  class="delete">Delete</button></div>');
+      return false
+    });
+    
+    $("#add_css").click(function (e) {
+      css_rules_container.append('<div><input id="css" name="css"><button  class="delete">Delete</button></div>');
+      return false
+    });
+    
+    $("body").on("click", ".delete", function (e) {
+        $(this).parent("div").remove();
+    });
+
+})();
+
+</script>
 

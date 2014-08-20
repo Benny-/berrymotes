@@ -12,7 +12,7 @@ var Q = require('q')
 // Puts a emote into the database, and returns it in a promise.
 var createEmoteFromJson = function(external_emote) {
 
-    var css = {}; // TODO: Fill this field
+    var css = {};
 
     return Emote.findOrCreate(
         {
@@ -100,9 +100,7 @@ module.exports = {
                 result.catch(function(err) {
                     console.warn("catch","Something bad happened: " + err)
                 })
-                .done( function() {
-                    console.log("Done")
-                });
+                .done();
 
                 res.json({
                     message: files.length + ' file(s) uploaded successfully. Processing will happen in the background now and might takes a few minutes.',
@@ -123,22 +121,55 @@ module.exports = {
             if (err)
                 return res.serverError(err);
             
+            emote_data = {}
+            
             canonical_name = req.body.canonical_name
             names = req.body.names
-            css = req.body.css
+            css_user = req.body.css
             tags = req.body.tags
             src = req.body.src
             
-            Emote.create(
-                {
-                    canonical_name: canonical_name,
-                    src: src,
+            emote_data.canonical_name = canonical_name
+            emote_data.src = src
+            
+            var removeEmptyStrings = function(array_with_strings) {
+                return array_with_strings.filter(function(s){return s.trim() != ""})
+            }
+            
+            if (tags) {
+                if(!Array.isArray(names))
+                    names = [names]
+                names = removeEmptyStrings(names)
+            }
+            
+            if (css_user) {
+                css = {}
+                if(!Array.isArray(css_user))
+                    css_user = [css_user]
+                css_user = removeEmptyStrings(css_user)
+                
+                var i = css_user.length;
+                while (i--) {
+                    // We serialize the single css lines into json here
+                    // "some_css_property: 100px"
+                    // Becomes:
+                    // {"some_css_property":100px}
+                    css_arr = css_user[i].split(":",2).map(function(s){return s.trim()})
+                    css[css_arr[0]] = css_arr[1]
                 }
-            )
+                emote_data.css = css
+            }
+            
+            if (tags) {
+                if(!Array.isArray(tags))
+                    tags = [tags]
+                tags = removeEmptyStrings(tags)
+            }
+            
+            Emote.create(emote_data)
             .then( function(emote) {
                 // TODO: Add tags.
                 // TODO: Add names.
-                // TODO: Add CSS.
                 return emote
             })
             .then( function(emote) {
