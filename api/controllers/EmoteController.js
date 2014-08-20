@@ -190,5 +190,10 @@ module.exports = {
         return res.view();
     }
   },
+  
+  edit: function (req,res) {
+    return res.view();
+  },
+  
 };
 
