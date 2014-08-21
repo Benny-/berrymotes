@@ -22,26 +22,23 @@ setTimeout(function sunrise () {
         <form action="/emote/submit" enctype="multipart/form-data" method="post">
         
             <div>
-                <label for="canonical_name">A unique unused canonical name*</label>
+                <label for="canonical_name">Canonical path*</label>
                 <input id="canonical_name" type="text" name="canonical_name" required placeholder="r/foo/bar/sorrysocks">
             </div>
             
-            <button id="add_name">Add name</button>
             <div id="names_container">
                 <label for="names">Name(s)*</label>
-                <input id="names" name="names">
+                <button id="add_name">Add name</button>
             </div>
             
-            <button id="add_css">Add css rule</button>
             <div id="css_rules_container">
                 <label for="css">CSS rule(s)</label>
-                <input id="css" name="css">
+                <button id="add_css">Add css rule</button>
             </div>
             
-            <button id="add_tag">Add tags</button>
             <div id="tags_container">
                 <label for="tags">Tag(s)</label>
-                <input id="tags" name="tags">
+                <button id="add_tag">Add tags</button>
             </div>
             
             <div>

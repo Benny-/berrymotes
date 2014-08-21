@@ -129,8 +129,9 @@ module.exports = {
             tags = req.body.tags
             src = req.body.src
             
-            emote_data.canonical_name = canonical_name
-            emote_data.src = src
+            emote_data.canonical_name = canonical_name.trim()
+            if(src)
+                emote_data.src = src.trim()
             
             var removeEmptyStrings = function(array_with_strings) {
                 return array_with_strings.filter(function(s){return s.trim() != ""})
@@ -192,7 +193,48 @@ module.exports = {
   },
   
   edit: function (req,res) {
-    return res.view();
+    var id = req.query.id
+    
+    if (!id) {
+        return res.badRequest("You must supply a valid id. A canonical name or a numeric id.");
+    }
+    
+    promise = undefined
+    if (isNaN(+id)) {
+        // id is a canonical name.
+        promise = Emote.findOne(
+        {
+            where: {
+                canonical_name: id,
+            }
+        })
+    }
+    else {
+        // id is a numeric id.
+        id = Math.floor(+id)
+        promise = Emote.findOne(
+        {
+            where: {
+                id: id,
+            }
+        })
+    }
+    promise.then( function(emote) {
+        if (emote === undefined)
+            throw new Error("Could not find a emote with that id")
+        return emote
+    })
+    .then(function(emote) {
+        console.log(emote)
+        return emote
+    })
+    .then(function(emote) {
+        res.view( {emote:emote} );
+    })
+    .catch(function(err) {
+        res.badRequest(err);
+    })
+    .done()
   },
   
 };

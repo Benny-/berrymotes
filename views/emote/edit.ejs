@@ -1,11 +1,16 @@
 
 <link type="text/css" href='http://sailsjs.org/styles/fonts.css' rel='stylesheet'/>
 
+<script src="https://code.jquery.com/jquery-2.1.1.js"></script>
+
 <script type="text/javascript">
 setTimeout(function sunrise () {
     document.getElementsByClassName('header')[0].style.backgroundColor = '#118798';
 }, 0);
 </script>
+
+<!-- TODO: Make a local copy of this scrip -->
+<script src="http://tomasdostal.com/projects/html5ImagePreview/html5.image.preview.js"></script>
 
 <div class="default-page">
     <div class="header">
@@ -14,8 +19,94 @@ setTimeout(function sunrise () {
     </div>
     <div class="main container clearfix">
         <p><%= __("You can change a emoticon here") %></p>
+        <form action="/emote/edit" enctype="multipart/form-data" method="post">
         
+            <div>
+                <label for="canonical_name">Canonical path*</label>
+                <input id="canonical_name" type="text" name="canonical_name" required value="<%= emote.canonical_name %>" >
+            </div>
+            
+            <div id="names_container">
+                <label for="names">Name(s)*</label>
+                <button id="add_name">Add name</button>
+<% for(var i=0; i<emote.names.length; i++) {%>
+   <div><input id="names" name="names" value="<%= emote.names[i].name %>"><button  class="delete">Delete</button></div>
+<% } %>
+            </div>
+            
+            <div id="css_rules_container">
+                <label for="css">CSS rule(s)</label>
+                <button id="add_css">Add css rule</button>
+<% for(var prop in emote.css) {%>
+   <div><input id="css" name="css" value="<%= prop + ':' + emote.css[prop] %>"><button  class="delete">Delete</button></div>
+<% } %>
+            </div>
+            
+            <div id="tags_container">
+                <label for="tags">Tag(s)</label>
+                <button id="add_tag">Add tags</button>
+<% for(var i=0; i<emote.tags.length; i++) {%>
+   <div><input id="tags" name="tags" value="<%= emote.tags[i].name %>"><button  class="delete">Delete</button></div>
+<% } %>
+            </div>
+            
+            <div>
+                <label for="src">Image source</label>
+<% if(emote.src) { %>
+                <input id="src" type="url" name="src" value="<%= emote.src %>">
+<% } else { %>
+                <input id="src" type="url" name="src">
+<% } %>
+            </div>
+            
+            <div>
+                <label for="emoticon_image">Emote image*</label>
+                <input id="emoticon_image" type="file" name="emoticon_images" required onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <div class="imagePreview"></div>
+            </div>
+            
+            <div>
+                <label for="emoticon_image_hover">Hover image</label>
+                <input id="emoticon_image_hover" type="file" name="emoticon_images" onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <div class="imagePreview"></div>
+            </div>
+            
+            <div>
+                <input type="submit" >
+                <input type="reset" >
+            </div>
+        </form>
         
     </div>
 </div>
+
+<script type="text/javascript">
+(function() {
+
+    var tags_container = $("#tags_container");
+    var css_rules_container = $("#css_rules_container");
+    var names_container = $("#names_container");
+    
+    $("#add_name").click(function (e) {
+      names_container.append('<div><input id="names" name="names"><button  class="delete">Delete</button></div>');
+      return false
+    });
+    
+    $("#add_tag").click(function (e) {
+      tags_container.append('<div><input id="tags" name="tags"><button  class="delete">Delete</button></div>');
+      return false
+    });
+    
+    $("#add_css").click(function (e) {
+      css_rules_container.append('<div><input id="css" name="css"><button  class="delete">Delete</button></div>');
+      return false
+    });
+    
+    $("body").on("click", ".delete", function (e) {
+        $(this).parent("div").remove();
+    });
+
+})();
+
+</script>
 
