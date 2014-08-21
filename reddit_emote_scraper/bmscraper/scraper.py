@@ -13,6 +13,7 @@
 # --------------------------------------------------------------------
 from datetime import datetime, timedelta
 import time
+import calendar
 from email.utils import parsedate
 from dateutil.tz import tzutc
 import requests
@@ -139,7 +140,7 @@ class BMScraper():
 
         text = response.text.encode('utf-8')
         modified_date_tuple = parsedate(response.headers['Last-Modified'])
-        modified_date_timestamp = time.mktime(modified_date_tuple)
+        modified_date_timestamp = calendar.timegm(modified_date_tuple)
         
         css_cache_file_path = get_file_path(response.url, rootdir=self.cache_dir )
         with self.mutex:
@@ -415,7 +416,7 @@ class BMScraper():
         image_dir = path.dirname(image_path)
 
         modified_date_tuple = parsedate(response.headers['Last-Modified'])
-        modified_date_timestamp = time.mktime(modified_date_tuple)
+        modified_date_timestamp = calendar.timegm(modified_date_tuple)
 
         with self.mutex:
             if not path.exists(image_dir):
