@@ -67,6 +67,22 @@ def _extract_single_image(emote, spritemap_img, position_key, width_key, height_
 
     x = x % spritemap_width
     y = y % spritemap_height
+    
+    # We explicitly set the width and height values in the emote if it was missing.
+    # This will make our output more consistent and makes it easier to process.
+    emote[width_key] = int(width)
+    emote[height_key] = int(height)
+    
+    if (x > 0 or y > 0):
+        # We explicitly set the (hover-)background-position on the spritemap here.
+        # This will make our output more consistent and makes it easier to process.
+        # The values will be normalized to px.
+        emote[position_key] = ['-'+str(x)+'px', '-'+str(y)+'px']
+    elif position_key in emote:
+        # But we remove the position key if it yields no benefits.
+        # This might save a few bytes.
+        del emote[position_key]
+    
     return spritemap_img.crop((x, y, x + width, y + height))
 
 def extract_single_image(emote, spritemap_img):
