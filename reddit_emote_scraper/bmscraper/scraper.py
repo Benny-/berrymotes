@@ -472,7 +472,7 @@ class BMScraper():
         '''Calucate delay in ms'''
         delay = int(round(float(delay_text[0:delay_text.index('/')]) / float(delay_text[delay_text.index('/') + 1:]) * 1000))
         if delay == 0:
-            delay = 1;
+            delay = 10;
         return delay
 
     def _reassemble_emote_png(self, emote):
