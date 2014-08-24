@@ -431,7 +431,11 @@ class BMScraper():
         '''
         Create a {emote name}_exploded directory
         This directory contains all frames.
-        The frames are cut out a spritemap if the spritemap was animated.
+        The frames are cut out a spritemap if needed.
+        
+        Returns True if animation was not cut out a spritemap. (background image size == individual frames sizes)
+        Returns False if animation was part of a spritemap and cutting was required. (background image size != individual frames sizes)
+        
         Does not handle hover images.
         '''
         explode_dir = get_explode_directory(emote)
@@ -444,9 +448,15 @@ class BMScraper():
         frames_paths = glob(os.path.join(explode_dir, '*.png'))
         for frame_path in frames_paths:
             background_image = Image.open(frame_path)
-            extracted_single_image = extract_single_image(emote, background_image)
+            # Most animations contain changing transparency parts.
+            # Therefore we must not autocrop individual frames.
+            # Otherwise we will end up with differently sized frames.
+            extracted_single_image = extract_single_image(emote, background_image, autocrop=False)
             if cmp(background_image.size, extracted_single_image.size) != 0:
                 extracted_single_image.save(frame_path)
+            else:
+                return True
+        return False
 
     def _calculate_frame_delay(self, delay_text):
         '''Calucate delay in ms'''
@@ -476,23 +486,26 @@ class BMScraper():
         apngasm( *args )
 
     def _handle_background_for_emote(self, emote, background_image_path, background_image):
-        extracted_single_image = extract_single_image(emote, background_image)
-
+        
         if not os.path.exists(os.path.dirname(get_single_image_path(emote))):
             os.makedirs(os.path.dirname(get_single_image_path(emote)))
 
         if emote['img_animation'] and not os.path.exists(get_explode_directory(emote)):
-            self._explode_emote(emote, background_image_path)
-
-        if cmp(background_image.size, extracted_single_image.size) == 0:
-            shutil.copyfile(background_image_path, get_single_image_path(emote, background_image.format))
-            shutil.copystat(background_image_path, get_single_image_path(emote))
-        elif not os.path.exists(get_single_image_path(emote)):
-            if emote['img_animation']:
+            same_as_spritemap = self._explode_emote(emote, background_image_path)
+            if not same_as_spritemap:
                 self._reassemble_emote_png(emote)
-            else:
+        else:
+            # Extracted images should not be auto-cropped if they contain a hover.
+            # The hover image may otherwise no longer align with the image below.
+            extracted_single_image = extract_single_image(emote, background_image, !has_hover(emote))
+            same_as_spritemap = cmp(background_image.size, extracted_single_image.size) == 0
+            if not same_as_spritemap:
                 with open(get_single_image_path(emote), 'wb') as f:
                     extracted_single_image.save(f)
+
+        if same_as_spritemap:
+            shutil.copyfile(background_image_path, get_single_image_path(emote, background_image.format))
+            shutil.copystat(background_image_path, get_single_image_path(emote))
 
         if has_hover(emote) and emote['img_animation']:
             logger.error('Emote '+friendly_name(emote)+' is animated and contains a hover. This was never anticipated any output this script generates may be incorrect')
@@ -503,7 +516,7 @@ class BMScraper():
                 extracted_single_hover_image.save(f)
 
     def _handle_hover_background_for_emote(self, emote, hover_background_image_path, hover_background_image):
-        extracted_single_hover_image = extract_single_hover_image(emote,hover_background_image)
+        extracted_single_hover_image = extract_single_hover_image(emote, hover_background_image)
 
         if cmp(hover_background_image.size, extracted_single_hover_image.size) == 0:
             shutil.copyfile(hover_background_image_path, get_single_hover_image_path(emote, hover_background_image.format))
