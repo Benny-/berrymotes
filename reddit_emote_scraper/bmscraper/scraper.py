@@ -200,6 +200,7 @@ class BMScraper():
 
     def _process_stylesheet(self, content, subreddit=None):
 
+        emotes = []
         emotes_staging = self._parse_css(content)
         if not emotes_staging:
             return
@@ -258,9 +259,10 @@ class BMScraper():
                 and emote['background-image'] not in self.image_blacklist
                 and 'height' in emote and emote['height'] < 1500
                 and 'width' in emote and emote['width'] < 1500):
-                self.emotes.append(emote)
+                emotes.append(emote)
             else:
                 logger.warn('Discarding emotes {}'.format(emote['names'][0]))
+        return emotes
 
     def _process_stylesheets(self):
         logger.info('Beginning to process stylesheets')
@@ -272,7 +274,15 @@ class BMScraper():
             try:
                 with open( css_subreddit_path, 'r' ) as f:
                     content = f.read().decode('utf-8')
-                    self._process_stylesheet(content, subreddit)
+                    emotes = self._process_stylesheet(content, subreddit)
+                    modified_time = path.getmtime(css_subreddit_path)
+                    for emote in emotes:
+                        # The last-modified field depends on the css's modified
+                        # date and any images's modified date. Images are
+                        # processed at a later stage, so this value could be
+                        # overwritten if a image has a later modified date.
+                        emote['Last-Modified'] = modified_time
+                        self.emotes.append(emote)
             except Exception as ex:
                 logger.warn('Not parsing stylesheet for ' + subreddit + ": " + str(ex))
 
@@ -537,6 +547,8 @@ class BMScraper():
                 continue
 
             background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
+            background_image_path = path.realpath(background_image_path)
+            modified_time = path.getmtime(background_image_path)
             with open(background_image_path, 'rb') as f:
                 background_image_data = f.read()
             animated = False
@@ -548,6 +560,8 @@ class BMScraper():
                 emote['img_animation'] = animated
                  # TODO: Consider checking if the hover image is animated.
                 self._handle_background_for_emote(emote, background_image_path, background_image)
+                if (emote['Last-Modified'] < modified_time):
+                    emote['Last-Modified'] = modified_time
 
         key_func = lambda e: e.get('hover-background-image')
         for image_url, emote_group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
@@ -556,9 +570,13 @@ class BMScraper():
                 continue
 
             hover_background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
+            background_image_path = path.realpath(hover_background_image_path)
+            modified_time = path.getmtime(hover_background_image_path)
             hover_background_image = Image.open(open(hover_background_image_path, 'rb'))
             for emote in emote_group:
                 self._handle_hover_background_for_emote(emote, hover_background_image_path, hover_background_image)
+                if (emote['Last-Modified'] < modified_time):
+                    emote['Last-Modified'] = modified_time
 
     def _visually_dedupe_emotes(self):
         logger.info('Beginning to visually dedupe emotes')
