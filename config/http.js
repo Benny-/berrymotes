@@ -9,6 +9,8 @@
  * http://sailsjs.org/#/documentation/reference/sails.config/sails.config.http.html
  */
 
+malifi = require('malifi')
+
 module.exports.http = {
 
   /****************************************************************************
@@ -21,7 +23,7 @@ module.exports.http = {
   *                                                                           *
   ****************************************************************************/
 
-  // middleware: {
+  middleware: {
 
   /***************************************************************************
   *                                                                          *
@@ -30,23 +32,24 @@ module.exports.http = {
   *                                                                          *
   ***************************************************************************/
 
-    // order: [
-    //   'startRequestTimer',
-    //   'cookieParser',
-    //   'session',
-    //   'myRequestLogger',
-    //   'bodyParser',
-    //   'handleBodyParserError',
-    //   'compress',
-    //   'methodOverride',
-    //   'poweredBy',
-    //   '$custom',
-    //   'router',
-    //   'www',
-    //   'favicon',
-    //   '404',
-    //   '500'
-    // ],
+    order: [
+      'startRequestTimer',
+      'cookieParser',
+      'session',
+      //'myRequestLogger',
+      'bodyParser',
+      'handleBodyParserError',
+      'compress',
+      'methodOverride',
+      'poweredBy',
+      'router',
+      'www',
+      'favicon',
+      'serve_upload_images',
+      'serve_reddit_images',
+      '404',
+      '500'
+    ],
 
   /****************************************************************************
   *                                                                           *
@@ -58,7 +61,17 @@ module.exports.http = {
     //     console.log("Requested :: ", req.method, req.url);
     //     return next();
     // }
-
+    
+    
+    serve_upload_images: malifi(__dirname+'/../emoticons/uploaded/', {
+                                        allowed_extensions:         ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
+                                        implied_static_extensions_: ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
+                                    }),
+    
+    serve_reddit_images: malifi(__dirname+'/../reddit_emote_scraper/output/', {
+                                        allowed_extensions:         ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
+                                        implied_static_extensions_: ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
+                                    }),
 
   /***************************************************************************
   *                                                                          *
@@ -71,7 +84,7 @@ module.exports.http = {
 
     // bodyParser: require('skipper')
 
-  // },
+  },
 
   /***************************************************************************
   *                                                                          *
