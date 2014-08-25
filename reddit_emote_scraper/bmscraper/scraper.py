@@ -507,7 +507,7 @@ class BMScraper():
         else:
             # Extracted images should not be auto-cropped if they contain a hover.
             # The hover image may otherwise no longer align with the image below.
-            extracted_single_image = extract_single_image(emote, background_image, !has_hover(emote))
+            extracted_single_image = extract_single_image(emote, background_image, not has_hover(emote))
             same_as_spritemap = cmp(background_image.size, extracted_single_image.size) == 0
             if not same_as_spritemap:
                 with open(get_single_image_path(emote), 'wb') as f:
