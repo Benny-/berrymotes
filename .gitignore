@@ -125,5 +125,6 @@ nosetests.xml
 
 .idea
 
-/reddit_emote_scraper/output
+/reddit_emote_scraper/output/
+/emoticons/uploaded/
 

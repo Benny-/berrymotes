@@ -24,7 +24,9 @@
     "grunt-contrib-less": "0.11.1",
     "grunt-contrib-coffee": "~0.10.1",
     "q": "~2",
-    "malifi": "git@github.com:Benny-/malifi.git#master"
+    "fs-extra": "~0.11.0",
+    "fs-promise": "~0.2.0",
+    "malifi": "git://github.com/Benny-/malifi.git#master"
   },
   "scripts": {
     "start": "node app.js",

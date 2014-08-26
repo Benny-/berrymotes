@@ -6,6 +6,7 @@
  */
 
 var fs = require('fs')
+var fsp_extra = require('fs-promise')
 var path = require('path')
 var Q = require('q')
 
@@ -183,7 +184,14 @@ module.exports = {
             
             emoticon_image = files[0]
             emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
-            // TODO: Move files somewhere.
+            
+            emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(emote_data.canonical_name.split('/')))
+            emoticon_image_hover_path = emoticon_image_path + '_hover'
+            
+            promise = fsp_extra.move(emoticon_image.fd, emoticon_image_path )
+            if (emoticon_image_hover)
+                promise = promise.then( function() { return fsp_extra.move(emoticon_image_hover.fd, emoticon_image_hover_path ) })
+            promise.done()
         });
     }
     else
