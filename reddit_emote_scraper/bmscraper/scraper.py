@@ -469,7 +469,7 @@ class BMScraper():
         return False
 
     def _calculate_frame_delay(self, delay_text):
-        '''Calucate delay in ms'''
+        '''Calucate delay in ms from apng's delay representation'''
         delay = int(round(float(delay_text[0:delay_text.index('/')]) / float(delay_text[delay_text.index('/') + 1:]) * 1000))
         if delay == 0:
             delay = 10;
@@ -500,16 +500,16 @@ class BMScraper():
         if not os.path.exists(os.path.dirname(get_single_image_path(emote))):
             os.makedirs(os.path.dirname(get_single_image_path(emote)))
 
-        if emote['img_animation'] and not os.path.exists(get_explode_directory(emote)):
+        if emote['img_animation']:
             same_as_spritemap = self._explode_emote(emote, background_image_path)
-            if not same_as_spritemap:
+            if not same_as_spritemap and not os.path.exists(get_single_image_path(emote)):
                 self._reassemble_emote_png(emote)
         else:
             # Extracted images should not be auto-cropped if they contain a hover.
             # The hover image may otherwise no longer align with the image below.
             extracted_single_image = extract_single_image(emote, background_image, not has_hover(emote))
             same_as_spritemap = cmp(background_image.size, extracted_single_image.size) == 0
-            if not same_as_spritemap:
+            if not same_as_spritemap and not os.path.exists(get_single_image_path(emote)):
                 with open(get_single_image_path(emote), 'wb') as f:
                     extracted_single_image.save(f)
 
