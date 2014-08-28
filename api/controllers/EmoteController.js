@@ -10,10 +10,13 @@ var fsp_extra = require('fs-promise')
 var path = require('path')
 var Q = require('q')
 
+var createEmote = function(emote_unsafe, update) {
+    
+}
+
 // Puts a emote into the database, and returns it in a promise.
 var createEmoteFromJson = function(external_emote) {
-
-    var css = {};
+    var css = {}
 
     return Emote.findOrCreate(
         {
@@ -73,9 +76,74 @@ var createEmoteFromJson = function(external_emote) {
     })
 }
 
+var submitEmote = function(emote_unsafe, files, update) {
+    var emote_dict = {}
+    
+    var canonical_name = emote_unsafe.canonical_name
+    var names = emote_unsafe.names
+    var css_user = emote_unsafe.css
+    var tags = emote_unsafe.tags
+    var src = emote_unsafe.src
+    
+    canonical_name = canonical_name.trim()
+    emote_dict.canonical_name = canonical_name
+    if(src)
+        src = src.trim()
+        emote_dict.src = src
+    
+    var removeEmptyStrings = function(array_with_strings) {
+        return array_with_strings.filter(function(s){return s.trim() != ""})
+    }
+    
+    if (tags) {
+        if(!Array.isArray(names))
+            names = [names]
+        names = removeEmptyStrings(names)
+    }
+    
+    if (css_user) {
+        css = {}
+        if(!Array.isArray(css_user))
+            css_user = [css_user]
+        css_user = removeEmptyStrings(css_user)
+        
+        var i = css_user.length;
+        while (i--) {
+            // We serialize the single css lines into json here
+            // "some_css_property: 100px"
+            // Becomes:
+            // {"some_css_property":100px}
+            css_arr = css_user[i].split(":",2).map(function(s){return s.trim()})
+            css[css_arr[0]] = css_arr[1]
+        }
+        emote_dict.css = css
+    }
+    
+    if (tags) {
+        if(!Array.isArray(tags))
+            tags = [tags]
+        tags = removeEmptyStrings(tags)
+    }
+    
+    var database_promise = Emote.create(emote_dict)
+    
+    var emoticon_image = files[0]
+    var emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
+    
+    var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
+    var emoticon_image_hover_path = emoticon_image_path + '_hover'
+    
+    var file_promise = fsp_extra.move(emoticon_image.fd, emoticon_image_path )
+    if (emoticon_image_hover)
+        file_promise = Q.all( file_promise, fsp_extra.move(emoticon_image_hover.fd, emoticon_image_hover_path) )
+    
+    return Q.all( [database_promise, file_promise] )
+            .then( function(arr_results){ return arr_results[0]} )
+}
+
 module.exports = {
 
-  bulk_upload: function (req,res) {
+  bulk_upload: function(req, res) {
     
     if(req.is('multipart/form-data')) {
         req.file('json_emote_file').upload(function (err, files) {
@@ -122,76 +190,17 @@ module.exports = {
             if (err)
                 return res.serverError(err);
             
-            emote_data = {}
-            
-            canonical_name = req.body.canonical_name
-            names = req.body.names
-            css_user = req.body.css
-            tags = req.body.tags
-            src = req.body.src
-            
-            emote_data.canonical_name = canonical_name.trim()
-            if(src)
-                emote_data.src = src.trim()
-            
-            var removeEmptyStrings = function(array_with_strings) {
-                return array_with_strings.filter(function(s){return s.trim() != ""})
-            }
-            
-            if (tags) {
-                if(!Array.isArray(names))
-                    names = [names]
-                names = removeEmptyStrings(names)
-            }
-            
-            if (css_user) {
-                css = {}
-                if(!Array.isArray(css_user))
-                    css_user = [css_user]
-                css_user = removeEmptyStrings(css_user)
-                
-                var i = css_user.length;
-                while (i--) {
-                    // We serialize the single css lines into json here
-                    // "some_css_property: 100px"
-                    // Becomes:
-                    // {"some_css_property":100px}
-                    css_arr = css_user[i].split(":",2).map(function(s){return s.trim()})
-                    css[css_arr[0]] = css_arr[1]
-                }
-                emote_data.css = css
-            }
-            
-            if (tags) {
-                if(!Array.isArray(tags))
-                    tags = [tags]
-                tags = removeEmptyStrings(tags)
-            }
-            
-            Emote.create(emote_data)
+            submitEmote(req.body, files)
             .then( function(emote) {
-                // TODO: Add tags.
-                // TODO: Add names.
-                return emote
-            })
-            .then( function(emote) {
-                res.json( {msg:"Successfully added emote",emote:emote})
-            })
-            .catch(function(err) {
-                res.serverError('Something went wrong. ' + err);
+                    res.json({
+                        msg:"Successfully added emote",
+                        emote:emote
+                    })
+                })
+            .catch( function(err) {
+                res.serverError(err);
             })
             .done()
-            
-            emoticon_image = files[0]
-            emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
-            
-            emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(emote_data.canonical_name.split('/')))
-            emoticon_image_hover_path = emoticon_image_path + '_hover'
-            
-            promise = fsp_extra.move(emoticon_image.fd, emoticon_image_path )
-            if (emoticon_image_hover)
-                promise = promise.then( function() { return fsp_extra.move(emoticon_image_hover.fd, emoticon_image_hover_path ) })
-            promise.done()
         });
     }
     else
@@ -201,49 +210,67 @@ module.exports = {
   },
   
   edit: function (req,res) {
-    var id = req.query.id
-    
-    if (!id) {
-        return res.badRequest("You must supply a valid id. A canonical name or a numeric id.");
+    if(req.is('multipart/form-data')) {
+        req.file('emoticon_images').upload(function (err, files) {
+            if (err)
+                return res.serverError(err);
+            
+            submitEmote(req.body, files, true)
+            .then( function(emote) {
+                    res.json({
+                        msg:"Successfully added emote",
+                        emote:emote
+                    })
+                })
+            .catch( function(err) {
+                res.serverError(err);
+            })
+            .done()
+        });
     }
-    
-    promise = undefined
-    if (isNaN(+id)) {
-        // id is a canonical name.
-        promise = Emote.findOne(
-        {
-            where: {
-                canonical_name: id,
-            }
+    else
+    {
+        var id = req.query.id
+        
+        if (!id) {
+            return res.badRequest("You must supply a valid id. A canonical name or a numeric id.");
+        }
+        
+        var promise = undefined
+        if (isNaN(+id)) {
+            // id is a canonical name.
+            promise = Emote.findOne(
+            {
+                where: {
+                    canonical_name: id,
+                }
+            })
+        }
+        else {
+            // id is a numeric id.
+            id = Math.floor(+id)
+            promise = Emote.findOne(
+            {
+                where: {
+                    id: id,
+                }
+            })
+        }
+        promise.then( function(emote) {
+            if (emote === undefined)
+                throw new Error("Could not find a emote with that id")
+            return emote
         })
-    }
-    else {
-        // id is a numeric id.
-        id = Math.floor(+id)
-        promise = Emote.findOne(
-        {
-            where: {
-                id: id,
-            }
+        .then(function(emote) {
+            if (!emote)
+                throw new Error("Could not locate emote")
+            res.view( {emote:emote} );
         })
+        .catch(function(err) {
+            res.badRequest(err);
+        })
+        .done()
     }
-    promise.then( function(emote) {
-        if (emote === undefined)
-            throw new Error("Could not find a emote with that id")
-        return emote
-    })
-    .then(function(emote) {
-        console.log(emote)
-        return emote
-    })
-    .then(function(emote) {
-        res.view( {emote:emote} );
-    })
-    .catch(function(err) {
-        res.badRequest(err);
-    })
-    .done()
-  },
-  
-};
+  }
+}
 
