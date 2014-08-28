@@ -37,6 +37,7 @@ from glob import glob
 from lxml import etree
 import execjs
 import tempfile
+import pickle
 
 import logging
 
@@ -70,27 +71,33 @@ class BMScraper():
         self._requests = requests.Session()
         self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.0 by /u/marminatoror'}
 
+    def _remove_images_emote(self, emote):
+        try:
+            os.remove(get_single_image_path(emote))
+        except:
+            pass
+
+        try:
+            os.remove(get_single_hover_image_path(emote))
+        except:
+            pass
+
+        webp_file_path = os.path.splitext(get_single_image_path(emote))[0] + '.webp'
+        try:
+            os.remove(webp_file_path)
+        except:
+            pass
+
+        try:
+            shutil.rmtree(get_explode_directory(emote))
+        except:
+            pass
+
     def _merge_emotes(self, keeper, goner):
         logger.debug('Merging '+canonical_name(goner)+' into '+canonical_name(keeper))
-
-        try:
-            os.remove(get_single_image_path(goner))
-        except:
-            pass
-
-        try:
-            os.remove(get_single_hover_image_path(goner))
-        except:
-            pass
-
-        try:
-            shutil.rmtree(get_explode_directory(goner))
-        except:
-            pass
-
-        # webp's do not have to be removed here.
-        # webp files do not exist during any of the merge steps.
-
+        
+        self._remove_images_emote(goner)
+        
         keeper['names'] = keeper['names'] + goner['names']
         keeper['names'] = _remove_duplicates(keeper['names'])
         keeper['tags'] = keeper.get('tags', []) + goner.get('tags', [])
@@ -286,6 +293,28 @@ class BMScraper():
             except Exception as ex:
                 logger.warn('Not parsing stylesheet for ' + subreddit + ": " + str(ex))
 
+    def _emote_image_source_equal(self, a, b):
+        """
+        This function compares if both emotes use the same image sources.
+        
+        This method is not perfect. It ignores CSS attributes.
+        A emote using the same image source (While still being visually different using CSS)
+        will still be incorrectly merged.
+        
+        The _extract_single_image() function in Emote.py normalizes some of the values.
+        Care should be taken so both inputs are normalized (or ensure both are NOT normalized).
+        """
+        if (a.get('background-image')           ==  b.get('background-image')           and
+            a.get('background-position')        ==  b.get('background-position')        and
+            a.get('width')                      ==  b.get('width')                      and
+            a.get('height')                     ==  b.get('height')                     and
+            a.get('hover-background-position')  ==  b.get('hover-background-position')  and
+            a.get('hover-width')                ==  b.get('hover-width')                and
+            a.get('hover-height')               ==  b.get('hover-height')
+            ):
+            return True
+        return False
+
     def _dedupe_emotes(self):
         logger.info('Beginning to de-duplicate emotes based on meta-data')
 
@@ -295,7 +324,7 @@ class BMScraper():
             for subreddit_emote in subreddit_emotes:
                 for emote in other_subreddits_emotes:
 
-                    # Remove duplicate names. The subreddit scraping order will determine which emote keeps there name.
+                    # Remove duplicate names. The subreddit scraping order will determine which emote keeps their name.
                     for name in subreddit_emote['names']:
                         if name in emote['names']:
                             emote['names'].remove(name)
@@ -306,19 +335,61 @@ class BMScraper():
             for subreddit_emote in subreddit_emotes:
                 for emote in other_subreddits_emotes:
 
-                    # merge (move all names to one emote) both emotes if they use the same image source
-                    # This method is not perfect. It ignores CSS attributes.
-                    # A emote using the same image source (While still being visually different using CSS)
-                    # will still be incorrectly merged.
-                    #
-                    # This method does not do visual image comparison. Visually equal images will not be merged.
-                    if (emote['background-image'] == subreddit_emote['background-image'] and
-                        emote.get('background-position') == subreddit_emote.get('background-position') and
-                        emote.get('height') == subreddit_emote.get('height') and
-                        emote.get('width') == subreddit_emote.get('width') ):
-
+                    # This method does not do visual image comparison.
+                    # Visually merging equal emotes happens at a later stage when
+                    # the images have been downloaded.
+                    if self._emote_image_source_equal(subreddit_emote, emote):
                         self._merge_emotes(subreddit_emote, emote)
                         self.emotes.remove(emote)
+
+    def _read_old_emotes(self):
+        """
+        This function will remove a emote's image from disk if the emote's image has changed.
+        It will try to check if a emote has not changed and change the Last-Modified in the appropriate way.
+        It will create self.old_emotes or set it to None.
+        """
+        # XXX: Filename is defined in two locations now. Here and one level higher in scrape.py.
+        FILENAME = path.join('output', 'emotes_metadata')
+
+        old_emotes = None
+        try:
+            with open(FILENAME + '.pickle_v2',"rb") as f:\
+                old_emotes = pickle.Unpickler(f).load()
+        except:
+            logger.warn("Could not read old emote file, this is expected if you run this for the first time.")
+
+        self.old_emotes = old_emotes
+        if old_emotes is None:
+            return
+
+        old_emote_map = {}
+        for old_emote in old_emotes:
+            old_emote_map[canonical_name(old_emote)] = old_emote
+
+        changed_emotes = []
+        for new_emote in self.emotes:
+            if canonical_name(new_emote) in old_emote_map:
+                old_emote = old_emote_map[canonical_name(new_emote)]
+                equal = self._emote_image_source_equal(old_emote, new_emote)
+                if not equal:
+                    logger.info("Emote: " + canonical_name(old_emote) + " might have changed.")
+                    # Someone might have added a image to a spritemap,
+                    # this will cause the background-image to change
+                    # making the old and new emote unequal, even if they look exactly the same.
+                    # There is only one solution for this:
+                    # TODO: Visually compare the old and new emote to be sure they are changed.
+                    self._remove_images_emote(new_emote)
+                    changed_emotes.append(new_emote)
+                else:
+                    # We set the new emote's modified date from the old one.
+                    # The new_emote modified date comes from the css or image files.
+                    # But the old and new emote are the same, so we will keep the oldest
+                    # modified date.
+                    new_emote['Last-Modified'] = old_emote['Last-Modified']
+                    # Technically its not correct, the emote's css might have changed. Meh.
+
+        # The changed emotes will need to be re-extracted.
+        self._extract_images_from_spritemaps(changed_emotes)
 
     def _add_bpm_tags(self):
         # Some people prefer to store web data in code instead of json.
@@ -534,14 +605,14 @@ class BMScraper():
         with open(get_single_hover_image_path(emote), 'wb') as f:
             extracted_single_hover_image.save(f)
 
-    def _extract_images_from_spritemaps(self):
+    def _extract_images_from_spritemaps(self, emotes):
         logger.info('Beginning to extract images from spritemaps')
 
         def is_apng(image_data):
             return 'acTL' in image_data[0:image_data.find('IDAT')]
 
         key_func = lambda e: e['background-image']
-        for image_url, emote_group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
+        for image_url, emote_group in itertools.groupby(sorted(emotes, key=key_func), key_func):
 
             if not image_url:
                 continue
@@ -564,7 +635,7 @@ class BMScraper():
                     emote['Last-Modified'] = modified_time
 
         key_func = lambda e: e.get('hover-background-image')
-        for image_url, emote_group in itertools.groupby(sorted(self.emotes, key=key_func), key_func):
+        for image_url, emote_group in itertools.groupby(sorted(emotes, key=key_func), key_func):
 
             if not image_url:
                 continue
@@ -742,7 +813,8 @@ class BMScraper():
         self._dedupe_emotes()
         self._add_bpm_tags()
         self._download_images()
-        self._extract_images_from_spritemaps()
+        self._extract_images_from_spritemaps(self.emotes)
+        self._read_old_emotes() # This will read the old emotes. Read function help for details.
         self._visually_dedupe_emotes()
         self._convert_emotes_to_webp()
         self._emote_post_preferance()
