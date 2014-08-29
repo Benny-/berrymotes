@@ -290,10 +290,16 @@ class BMScraper():
                     emotes = self._process_stylesheet(content, subreddit)
                     modified_time = path.getmtime(css_subreddit_path)
                     for emote in emotes:
-                        # The last-modified field depends on the css's modified
-                        # date and any images's modified date. Images are
-                        # processed at a later stage, so this value could be
-                        # overwritten if a image has a later modified date.
+                        # The emote['last-modified'] is set to the last modify date.
+                        # The last-modified http headers are used for this.
+                        # 
+                        # Here we check if CSS file modified date. Image files
+                        # are handled at a later stage. (so this value could be over-
+                        # written at a later stage)
+                        # 
+                        # A additional operation related to modified date happens
+                        # in _read_old_emote(). We set the modify date to the oldest
+                        # possible date, as CSS header modify date is not reliable.
                         emote['Last-Modified'] = modified_time
                         self.emotes.append(emote)
             except Exception as ex:
@@ -391,7 +397,13 @@ class BMScraper():
                     # The new_emote modified date comes from the css or image files.
                     # But the old and new emote are the same, so we will keep the oldest
                     # modified date.
-                    new_emote['Last-Modified'] = old_emote['Last-Modified']
+                    # 
+                    # The additional new_emote['Last-Modified'] > old_emote['Last-Modified'] check
+                    # is here if this script is run on old css data (If old_emotes are
+                    # actually generated from newer css data) (we always keep the oldest
+                    # valid modify date).
+                    if new_emote['Last-Modified'] > old_emote['Last-Modified']:
+                        new_emote['Last-Modified'] = old_emote['Last-Modified']
                     # Technically its not correct, the emote's css might have changed. Meh.
 
         # The changed emotes will need to be re-extracted.
