@@ -88,6 +88,12 @@ class BMScraper():
         except:
             pass
 
+        webp_hover_file_path = os.path.splitext(get_single_hover_image_path(emote))[0] + '.webp'
+        try:
+            os.remove(webp_hover_file_path)
+        except:
+            pass
+
         try:
             shutil.rmtree(get_explode_directory(emote))
         except:
