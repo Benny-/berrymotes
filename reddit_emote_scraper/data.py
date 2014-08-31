@@ -216,6 +216,7 @@ subreddits = [
     "MildLyPony",
     "SGaP",
     "mlpoc",
+    "SpanishMeerkat",
 ]
 
 emote_info = [
