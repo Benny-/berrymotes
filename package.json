@@ -5,7 +5,7 @@
   "description": "A emote server. Simple create/read/update/delete operations for emoticons/animotes",
   "keywords": [],
   "dependencies": {
-    "sails": "~0.10.4",
+    "sails": "~0.10.5",
     "sails-postgresql": "0.10.0-rc4",
     "sails-disk": "~0.10.0",
     "rc": "~0.5.0",
