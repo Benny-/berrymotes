@@ -101,6 +101,11 @@ var submitEmote = function(emote_unsafe, files, update) {
         names = removeEmptyStrings(names)
     }
     
+    // Remove duplicates
+    names = names.filter(function(item, pos, self) {
+        return self.indexOf(item) == pos;
+    })
+    
     if (css_user) {
         css = {}
         if(!Array.isArray(css_user))
@@ -125,7 +130,20 @@ var submitEmote = function(emote_unsafe, files, update) {
         tags = removeEmptyStrings(tags)
     }
     
-    var database_promise = Emote.create(emote_dict)
+    var database_promise = undefined
+    if (update)
+    {
+        database_promise = Emote.findOne(
+                {
+                    where: {
+                        canonical_name: external_emote.canonical,
+                    }
+                })
+    }
+    else
+    {
+        database_promise = Emote.create(emote_dict)
+    }
     
     var emoticon_image = files[0]
     var emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
@@ -133,7 +151,7 @@ var submitEmote = function(emote_unsafe, files, update) {
     var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
     var emoticon_image_hover_path = emoticon_image_path + '_hover'
     
-    var file_promise = fsp_extra.move(emoticon_image.fd, emoticon_image_path )
+    var file_promise = fsp_extra.move(emoticon_image.fd, emoticon_image_path)
     if (emoticon_image_hover)
         file_promise = Q.all( file_promise, fsp_extra.move(emoticon_image_hover.fd, emoticon_image_hover_path) )
     
@@ -153,8 +171,7 @@ module.exports = {
             fs.readFile( files[0].fd, { encoding : 'utf-8', flag: 'r' }, function(err, data) {
               
                 if(err) {
-                    res.writeHead(500, {'content-type': 'text'});
-                    res.end(err.message)
+                    res.serverError(err);
                     return
                 }
 
@@ -180,7 +197,7 @@ module.exports = {
     }
     else
     {
-      return res.view();
+      res.view();
     }
   },
   
@@ -205,7 +222,7 @@ module.exports = {
     }
     else
     {
-        return res.view();
+      res.view();
     }
   },
   
@@ -233,7 +250,9 @@ module.exports = {
         var id = req.query.id
         
         if (!id) {
-            return res.badRequest("You must supply a valid id. A canonical name or a numeric id.");
+            res.status(400);
+            res.view('emote/error', {error:"You must supply a valid id. A canonical name or a numeric id."} );
+            return
         }
         
         var promise = undefined
@@ -258,7 +277,7 @@ module.exports = {
         }
         promise.then( function(emote) {
             if (emote === undefined)
-                throw new Error("Could not find a emote with that id")
+                throw new Error("Could not find a emote with id: "+id)
             return emote
         })
         .then(function(emote) {
@@ -267,7 +286,8 @@ module.exports = {
             res.view( {emote:emote} );
         })
         .catch(function(err) {
-            res.badRequest(err);
+            res.status(400);
+            res.view('emote/error', {error:err} );
         })
         .done()
     }
