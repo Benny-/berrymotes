@@ -9,10 +9,7 @@ var fs = require('fs')
 var fsp_extra = require('fs-promise')
 var path = require('path')
 var Q = require('q')
-
-var createEmote = function(emote_unsafe, update) {
-    
-}
+Q.longStackSupport = true;
 
 // Puts a emote into the database, and returns it in a promise.
 var createEmoteFromJson = function(external_emote) {
@@ -76,7 +73,24 @@ var createEmoteFromJson = function(external_emote) {
     })
 }
 
-var submitEmote = function(emote_unsafe, files, update) {
+var move_image = function(from, to, overwrite) {
+    var file_promise = Q()
+    if(update) {
+        var file_promise = file_promise.then ( function() {
+            sails.log.debug("Removing " + to);
+            return fsp_extra.remove(to)
+        })
+        .err( function(err) {
+            sails.log.error("Remove failed, but I don't care: " + err);
+        })
+    }
+    var file_promise = file_promise.then ( function() {
+        return fsp_extra.move(from, to)
+    })
+    return file_promise
+}
+
+var submit_emote = function(emote_unsafe, files, update) {
     var emote_dict = {}
     
     var canonical_name = emote_unsafe.canonical_name
@@ -94,6 +108,12 @@ var submitEmote = function(emote_unsafe, files, update) {
     var removeEmptyStrings = function(array_with_strings) {
         return array_with_strings.filter(function(s){return s.trim() != ""})
     }
+    
+    if (!names)
+        names = []
+    
+    if (!update)
+        names.push(canonical_name)
     
     if (tags) {
         if(!Array.isArray(names))
@@ -117,7 +137,7 @@ var submitEmote = function(emote_unsafe, files, update) {
             // We serialize the single css lines into json here
             // "some_css_property: 100px"
             // Becomes:
-            // {"some_css_property":100px}
+            // {"some_css_property":"100px"}
             css_arr = css_user[i].split(":",2).map(function(s){return s.trim()})
             css[css_arr[0]] = css_arr[1]
         }
@@ -136,7 +156,7 @@ var submitEmote = function(emote_unsafe, files, update) {
         database_promise = Emote.findOne(
                 {
                     where: {
-                        canonical_name: external_emote.canonical,
+                        canonical_name: canonical_name,
                     }
                 })
     }
@@ -144,6 +164,14 @@ var submitEmote = function(emote_unsafe, files, update) {
     {
         database_promise = Emote.create(emote_dict)
     }
+    database_promise = database_promise
+    .then( function(emote) {
+        if(!emote) {
+            throw new Error('Emote not found in database')
+        }
+        
+        return emote
+    })
     
     var emoticon_image = files[0]
     var emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
@@ -151,9 +179,9 @@ var submitEmote = function(emote_unsafe, files, update) {
     var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
     var emoticon_image_hover_path = emoticon_image_path + '_hover'
     
-    var file_promise = fsp_extra.move(emoticon_image.fd, emoticon_image_path)
+    var file_promise = move_image(emoticon_image.fd, emoticon_image_path, update)
     if (emoticon_image_hover)
-        file_promise = Q.all( file_promise, fsp_extra.move(emoticon_image_hover.fd, emoticon_image_hover_path) )
+        file_promise = Q.all( file_promise, move_image(emoticon_image_hover.fd, emoticon_image_hover_path, update) )
     
     return Q.all( [database_promise, file_promise] )
             .then( function(arr_results){ return arr_results[0]} )
@@ -207,7 +235,7 @@ module.exports = {
             if (err)
                 return res.serverError(err);
             
-            submitEmote(req.body, files)
+            submit_emote(req.body, files)
             .then( function(emote) {
                     res.json({
                         msg:"Successfully added emote",
@@ -232,7 +260,7 @@ module.exports = {
             if (err)
                 return res.serverError(err);
             
-            submitEmote(req.body, files, true)
+            submit_emote(req.body, files, true)
             .then( function(emote) {
                     res.json({
                         msg:"Successfully added emote",
