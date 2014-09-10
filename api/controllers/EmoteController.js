@@ -8,7 +8,9 @@
 var fs = require('fs')
 var fsp_extra = require('fs-promise')
 var path = require('path')
+var image_size = require('image-size')
 var Q = require('q')
+
 Q.longStackSupport = true;
 
 // Puts a emote into the database, and returns it in a promise.
@@ -67,16 +69,16 @@ var createEmoteFromJson = function(external_emote) {
             })
             
             return Q.allSettled( [].concat(tags_promises, names_promises) ) // I don't really care if setting the tags or names succeed.
-            .then(function(results) {return emote} ) // So we don't check the resulting promises here.
-            .then(function(result) { console.log("Processed emote: " + emote.id ); return result})
+            .then(function(results) {return emote} )                        // So we don't check the resulting promises here.
+            .then(function(emote) { console.log("Processed emote: " + emote.id ); return result})
         }
     })
 }
 
 var move_image = function(from, to, overwrite) {
     var file_promise = Q()
-    if(update) {
-        var file_promise = file_promise.then ( function() {
+    if(overwrite) {
+        file_promise = file_promise.then ( function() {
             sails.log.debug("Removing " + to);
             return fsp_extra.remove(to)
         })
@@ -84,7 +86,7 @@ var move_image = function(from, to, overwrite) {
             sails.log.error("Remove failed, but I don't care: " + err);
         })
     }
-    var file_promise = file_promise.then ( function() {
+    file_promise = file_promise.then ( function() {
         return fsp_extra.move(from, to)
     })
     return file_promise
@@ -150,41 +152,61 @@ var submit_emote = function(emote_unsafe, files, update) {
         tags = removeEmptyStrings(tags)
     }
     
-    var database_promise = undefined
-    if (update)
-    {
-        database_promise = Emote.findOne(
-                {
-                    where: {
-                        canonical_name: canonical_name,
-                    }
-                })
-    }
-    else
-    {
-        database_promise = Emote.create(emote_dict)
-    }
-    database_promise = database_promise
-    .then( function(emote) {
-        if(!emote) {
-            throw new Error('Emote not found in database')
-        }
-        
-        return emote
-    })
-    
     var emoticon_image = files[0]
     var emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
     
     var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
     var emoticon_image_hover_path = emoticon_image_path + '_hover'
     
-    var file_promise = move_image(emoticon_image.fd, emoticon_image_path, update)
-    if (emoticon_image_hover)
-        file_promise = Q.all( file_promise, move_image(emoticon_image_hover.fd, emoticon_image_hover_path, update) )
+    var file_promise = undefined
+    var base_image_promise = undefined
+    var hover_image_promise = undefined
     
-    return Q.all( [database_promise, file_promise] )
-            .then( function(arr_results){ return arr_results[0]} )
+    base_image_promise = Q.nfcall(image_size, emoticon_image.fd)
+    .then( function(dimensions) {
+        emote_dict.width = dimensions.width
+        emote_dict.height = dimensions.height
+    })
+    .then( function() { move_image(emoticon_image.fd, emoticon_image_path, update) })
+    
+    if (emoticon_image_hover) {
+        hover_image_promise = Q.nfcall(image_size, emoticon_image_hover.fd)
+        .then( function(dimensions) {
+            emote_dict["hover-width"] = dimensions.width
+            emote_dict["hover-height"] = dimensions.height
+        })
+        .then( function() { move_image(emoticon_image_hover.fd, emoticon_image_hover_path, update) })
+    }
+    
+    if (emoticon_image_hover) {
+        file_promise = Q.all( [base_image_promise, hover_image_promise] )
+    }
+    else {
+        file_promise = base_image_promise
+    }
+    
+    return file_promise.then( function() {
+        var database_promise = undefined
+        if (update) {
+            database_promise = Emote.findOne(
+                    {
+                        where: {
+                            canonical_name: canonical_name,
+                        }
+                    })
+        }
+        else {
+            database_promise = Emote.create(emote_dict)
+        }
+        database_promise = database_promise
+        .then( function(emote) {
+            if(!emote) {
+                throw new Error('Emote not found in database')
+            }
+            
+            return emote
+        })
+    })
 }
 
 module.exports = {

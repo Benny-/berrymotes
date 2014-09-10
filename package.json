@@ -26,7 +26,8 @@
     "q": "~2",
     "fs-extra": "~0.11.0",
     "fs-promise": "~0.2.0",
-    "malifi": "git://github.com/Benny-/malifi.git#master"
+    "malifi": "git://github.com/Benny-/malifi.git#master",
+    "image-size": "~0.3.3"
   },
   "scripts": {
     "start": "node app.js",
