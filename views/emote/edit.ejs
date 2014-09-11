@@ -22,12 +22,12 @@ setTimeout(function sunrise () {
         <form action="/emote/edit" enctype="multipart/form-data" method="post">
         
             <div>
-                <label for="canonical_name">Canonical path*</label>
-                <input id="canonical_name" type="text" name="canonical_name" required value="<%= emote.canonical_name %>" >
+                <label for="canonical_name">Canonical path</label>
+                <input id="canonical_name" type="text" name="canonical_name" required value="<%= emote.canonical_name %>" readonly >
             </div>
             
             <div id="names_container">
-                <label for="names">Name(s)*</label>
+                <label for="names">Name(s)</label>
                 <button id="add_name">Add name</button>
 <% for(var i=0; i<emote.names.length; i++) {%>
    <div><input id="names" name="names" value="<%= emote.names[i].name %>"><button  class="delete">Delete</button></div>
@@ -60,8 +60,8 @@ setTimeout(function sunrise () {
             </div>
             
             <div>
-                <label for="emoticon_image">Emote image*</label>
-                <img width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>">
+                <label for="emoticon_image">Emote image</label>
+                <div><img width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
                 <input id="emoticon_image" type="file" name="emoticon_images" required onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>
             </div>
@@ -69,7 +69,8 @@ setTimeout(function sunrise () {
             <div>
                 <label for="emoticon_image_hover">Hover image</label>
 <% if(emote['hover-width']) { %>
-                <img width="<%= emote['hover-width'] %>" height="<%= emote['hover-height'] %>" src="/<%= emote.canonical_name %>_hover">
+                <div><label>Remove hover image<input type="checkbox" name="remove_hover"></label></div>
+                <div><img width="<%= emote['hover-width'] %>" height="<%= emote['hover-height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
 <% } %>
                 <input id="emoticon_image_hover" type="file" name="emoticon_images" onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>

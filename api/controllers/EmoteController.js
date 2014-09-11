@@ -81,8 +81,7 @@ var move_image = function(from, to, overwrite) {
         file_promise = file_promise.then ( function() {
             sails.log.debug("Removing " + to);
             return fsp_extra.remove(to)
-        })
-        .err( function(err) {
+        }, function(err) {
             sails.log.error("Remove failed, but I don't care: " + err);
         })
     }
@@ -285,7 +284,7 @@ module.exports = {
             submit_emote(req.body, files, true)
             .then( function(emote) {
                     res.json({
-                        msg:"Successfully added emote",
+                        msg:"Successfully edited emote",
                         emote:emote
                     })
                 })
