@@ -19,7 +19,7 @@ setTimeout(function sunrise () {
     </div>
     <div class="main container clearfix">
         <p><%= __("You can change a emoticon here") %></p>
-        <form action="/emote/edit" enctype="multipart/form-data" method="post">
+        <form action="/emote/edit?id=<%= emote.canonical_name %>" enctype="multipart/form-data" method="post">
         
             <div>
                 <label for="canonical_name">Canonical path</label>
@@ -62,7 +62,7 @@ setTimeout(function sunrise () {
             <div>
                 <label for="emoticon_image">Emote image</label>
                 <div><img width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
-                <input id="emoticon_image" type="file" name="emoticon_images" required onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <input id="emoticon_image" type="file" name="emoticon_images" onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>
             </div>
             

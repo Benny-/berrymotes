@@ -13,65 +13,181 @@ var Q = require('q')
 
 Q.longStackSupport = true;
 
-// Puts a emote into the database, and returns it in a promise.
-var createEmoteFromJson = function(external_emote) {
-    var css = {}
+// https://stackoverflow.com/revisions/728395/2
+// This clone function enough for me.
+function clone(obj) {
+    if(obj == null || typeof(obj) != 'object')
+        return obj;    
+    var temp = new obj.constructor(); 
+    for(var key in obj)
+        temp[key] = clone(obj[key]);    
+    return temp;
+}
 
-    return Emote.findOrCreate(
+/*
+// This function converts something like this:
+    [
         {
-            where: {
-                canonical_name: external_emote.canonical,
-            }
-        },
-        {
-            canonical_name: external_emote.canonical,
-            height: external_emote.height,
-            width: external_emote.width,
-            "hover-width": external_emote["hover-width"],
-            "hover-height": external_emote["hover-height"],
-            img_animation: external_emote.img_animation,
-            single_image_extension: external_emote.single_image_extension,
-            single_hover_image_extension: external_emote.single_hover_image_extension,
-            src: external_emote.src,
-            css: css,
+            "name": "foo",
+            "macaroni": true,
         }
-    )
-    // TODO: Update emote if it already exists.
-    .then( function(emote) {
-        if(external_emote.tags && external_emote.tags.length > 1)
         {
-            var tags_promises = external_emote.tags.map( function(external_tag) {
+            "name": "bar",
+            "macaroni": false,
+        }
+    ]
+// into
+    [
+        "name": "foo",
+        "name": "bar",
+    ]
+*/
+var array_name_picker = function(arr)
+{
+    return arr.map( function(element) {
+        return element.name
+    })
+}
+
+// This function updates the record in the database.
+// It does not do any file operations.
+var create_emote = function(emote_dict) {
+    emote_update_values = clone(emote_dict)
+    delete emote_update_values.canonical_name
+    delete emote_update_values.names
+    delete emote_update_values.tags
+    
+    return Emote.create(emote_dict)
+    .then( function(emote) {
+        var tags_promises = emote_dict.tags.map( function(tag) {
+            var promise = Tag.findOrCreate(
+                {
+                    where: {
+                        name: tag,
+                    }
+                },
+                {
+                    name: tag,
+                }
+            )
+            .then( function(tag) {
+                tag.emotes.add(emote.id)
+                return tag.save()
+            })
+            return promise;
+        })
+        
+        var names_promises = emote_dict.names.map( function(name) {
+            // Note: We don't use findOrCreate here so it fails if it already exist. We shall not override any existing names.
+            return Name.create(
+                {
+                    name: name,
+                    emote: emote.id,
+                }
+            )
+        })
+        
+        return Q.allSettled( [].concat(tags_promises, names_promises) ) // I don't really care if setting the tags or names succeed.
+        .then(function(results) {return emote} )
+    })
+}
+
+// This function updates the record in the database.
+// It does not do any file operations.
+var update_emote = function(emote_dict) {
+    emote_update_values = clone(emote_dict)
+    delete emote_update_values.canonical_name
+    delete emote_update_values.names
+    delete emote_update_values.tags
+    return Emote.findOne({
+            where: {
+                canonical_name: emote_dict.canonical_name,
+            }
+        })
+    .then( function(emote) {
+        if(!emote)
+            throw new Error("Emote not found")
+        return emote
+    })
+    .then( function(emote) {
+        return Emote.update({
+                where: {
+                    canonical_name: emote_dict.canonical_name,
+                }
+            },
+            emote_update_values)
+        .then(function(results) {
+            updated_emote = results[0]
+            
+            // I kinda need the populated fields, but Emote.update()
+            // Does not support chaining .populate()
+            // So we must launch a new query
+            return Emote.findOne({
+                    where: {
+                        canonical_name: emote_dict.canonical_name,
+                    }
+                })
+            .populate('names')
+            .populate('tags')
+        })
+    })
+    .then( function(emote) {
+        var old_tags = array_name_picker(emote.tags)
+        var old_tags_dict = {}
+        old_tags.forEach(function(value, index, arr) {
+            old_tags_dict[value] = true
+        })
+        var tags_promises = emote_dict.tags.map( function(tag) {
+            if(!old_tags_dict[tag])
+            {
                 var promise = Tag.findOrCreate(
                     {
                         where: {
-                            name: external_tag,
+                            name: tag,
                         }
                     },
                     {
-                        name: external_tag,
+                        name: tag,
                     }
                 )
                 .then( function(tag) {
-                    tag.emotes.add(emote.id) // TODO: Conditionally add so we don't needlessly update the modify date on the tag.
+                    tag.emotes.add(emote.id)
                     return tag.save()
                 })
                 return promise;
-            })
-            
-            var names_promises = external_emote.names.map( function(external_name) {
-                // Note: We don't use findOrCreate here so it fails if it already exist. We shall not override any existing names.
+            }
+            // TODO: Add code for removing tags
+        })
+        
+        var old_names = array_name_picker(emote.names)
+        var old_names_dict = {}
+        old_names.forEach(function(value, index, arr) {
+            old_names_dict[value] = true
+        })
+        var names_promises = emote_dict.names.map( function(name) {
+            // Note: We don't use findOrCreate here so it fails if it already exist. We shall not override any existing names.
+            if(!old_names_dict[name]) {
                 return Name.create(
                     {
-                        name: external_name,
+                        name: name,
                         emote: emote.id,
                     }
                 )
-            })
-            
-            return Q.allSettled( [].concat(tags_promises, names_promises) ) // I don't really care if setting the tags or names succeed.
-            .then(function(results) {return emote} )                        // So we don't check the resulting promises here.
-            .then(function(emote) { console.log("Processed emote: " + emote.id ); return result})
-        }
+            }
+            // TODO: Add code for removing names
+        })
+        
+        return Q.allSettled( [].concat(tags_promises, names_promises) ) // I don't really care if setting the tags or names succeed.
+        .then(function(results) {return emote} )                        // So we don't check the resulting promises here.
+        .then(function() {
+            return Emote.findOne({
+                    where: {
+                        canonical_name: emote_dict.canonical_name,
+                    }
+                })
+            .populate('names')
+            .populate('tags')
+        })
     })
 }
 
@@ -100,7 +216,7 @@ var submit_emote = function(emote_unsafe, files, update) {
     var tags = emote_unsafe.tags
     var src = emote_unsafe.src
     
-    canonical_name = canonical_name.trim()
+    canonical_name = canonical_name.trim() // More checking is required on canonical_name.
     emote_dict.canonical_name = canonical_name
     if(src)
         src = src.trim()
@@ -116,19 +232,27 @@ var submit_emote = function(emote_unsafe, files, update) {
     if (!update)
         names.push(canonical_name)
     
-    if (tags) {
-        if(!Array.isArray(names))
-            names = [names]
-        names = removeEmptyStrings(names)
-    }
+    if(!Array.isArray(names))
+        names = [names]
+    names = removeEmptyStrings(names)
     
     // Remove duplicates
     names = names.filter(function(item, pos, self) {
         return self.indexOf(item) == pos;
     })
     
+    if (!tags)
+        tags = []
+    
+    if(!Array.isArray(tags))
+        tags = [tags]
+    tags = removeEmptyStrings(tags)
+    
+    emote_dict.names = names
+    emote_dict.tags = tags
+    
     if (css_user) {
-        css = {}
+        var css = {}
         if(!Array.isArray(css_user))
             css_user = [css_user]
         css_user = removeEmptyStrings(css_user)
@@ -145,13 +269,7 @@ var submit_emote = function(emote_unsafe, files, update) {
         emote_dict.css = css
     }
     
-    if (tags) {
-        if(!Array.isArray(tags))
-            tags = [tags]
-        tags = removeEmptyStrings(tags)
-    }
-    
-    var emoticon_image = files[0]
+    var emoticon_image = files[0] // emoticon_image is allowed to be undefined if 'update' is false
     var emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
     
     var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
@@ -161,12 +279,22 @@ var submit_emote = function(emote_unsafe, files, update) {
     var base_image_promise = undefined
     var hover_image_promise = undefined
     
-    base_image_promise = Q.nfcall(image_size, emoticon_image.fd)
-    .then( function(dimensions) {
-        emote_dict.width = dimensions.width
-        emote_dict.height = dimensions.height
-    })
-    .then( function() { move_image(emoticon_image.fd, emoticon_image_path, update) })
+    if(!emoticon_image && !update)
+    {
+        return Q.reject(new Error("A emoticon must have a base image"))
+    }
+    
+    if (emoticon_image) {
+        base_image_promise = Q.nfcall(image_size, emoticon_image.fd)
+        .then( function(dimensions) {
+            emote_dict.width = dimensions.width
+            emote_dict.height = dimensions.height
+        })
+        .then( function() { move_image(emoticon_image.fd, emoticon_image_path, update) })
+    }
+    else {
+        base_image_promise = Q("Base image file unchanged");
+    }
     
     if (emoticon_image_hover) {
         hover_image_promise = Q.nfcall(image_size, emoticon_image_hover.fd)
@@ -176,35 +304,22 @@ var submit_emote = function(emote_unsafe, files, update) {
         })
         .then( function() { move_image(emoticon_image_hover.fd, emoticon_image_hover_path, update) })
     }
-    
-    if (emoticon_image_hover) {
-        file_promise = Q.all( [base_image_promise, hover_image_promise] )
-    }
     else {
-        file_promise = base_image_promise
+        hover_image_promise = Q("Hover image file unchanged");
     }
+    
+    file_promise = Q.all( [base_image_promise, hover_image_promise] )
     
     return file_promise.then( function() {
         var database_promise = undefined
         if (update) {
-            database_promise = Emote.findOne(
-                    {
-                        where: {
-                            canonical_name: canonical_name,
-                        }
-                    })
+            database_promise = update_emote(emote_dict)
         }
         else {
-            database_promise = Emote.create(emote_dict)
+            database_promise = create_emote(emote_dict)
         }
-        database_promise = database_promise
-        .then( function(emote) {
-            if(!emote) {
-                throw new Error('Emote not found in database')
-            }
-            
-            return emote
-        })
+        
+        return database_promise
     })
 }
 
@@ -230,7 +345,30 @@ module.exports = {
                 external_emotes.map( function(external_emote) {
                     // We process the emotes in some order so the database adapter does not get overloaded.
                     // Processing everything at the same time causes disruption in other services this web server provides.
-                    result = result.then( function() { return createEmoteFromJson(external_emote) } )
+                    result = result.then( function() {
+                        var css = {}
+                        
+                        emote_dict = {
+                            canonical_name: external_emote.canonical,
+                            height: external_emote.height,
+                            width: external_emote.width,
+                            "hover-width": external_emote["hover-width"],
+                            "hover-height": external_emote["hover-height"],
+                            img_animation: external_emote.img_animation,
+                            single_image_extension: external_emote.single_image_extension,
+                            single_hover_image_extension: external_emote.single_hover_image_extension,
+                            src: external_emote.src,
+                            css: css,
+                        }
+                        
+                        return create_emote(emote_dict)
+                        .then(
+                            function(emote) { console.log("Created new emote: " + emote.id + " " + external_emote.canonical ); return emote},
+                            function() { return update_emote(emote_dict)
+                                                .then(function(emote) { console.log("Updated emote: " + emote.id + " " + external_emote.canonical ); return emote })
+                                        }
+                        )
+                    } )
                 })
                 result.catch(function(err) {
                     console.warn("catch","Something bad happened: " + err)
@@ -324,15 +462,17 @@ module.exports = {
                 }
             })
         }
+        promise = promise
+        .populate('names')
+        .populate('tags')
+        
         promise.then( function(emote) {
             if (emote === undefined)
                 throw new Error("Could not find a emote with id: "+id)
             return emote
         })
         .then(function(emote) {
-            if (!emote)
-                throw new Error("Could not locate emote")
-            res.view( {emote:emote} );
+            res.view( {emote:emote} )
         })
         .catch(function(err) {
             res.status(400);
