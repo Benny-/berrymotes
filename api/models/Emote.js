@@ -11,7 +11,6 @@ module.exports = {
         
         canonical_name: {
             type: 'STRING',
-            index: true,
             unique: true,
         },
         

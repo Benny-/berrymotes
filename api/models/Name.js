@@ -12,7 +12,7 @@ module.exports = {
         name: {
             type: 'STRING',
             primaryKey: true,
-            required: true
+            required: true,
         },
 
         emote: {
