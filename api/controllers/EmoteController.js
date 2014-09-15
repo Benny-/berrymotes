@@ -241,6 +241,8 @@ var submit_emote = function(emote_unsafe, files, update) {
         return self.indexOf(item) == pos;
     })
     
+    emote_dict.names = names
+    
     if (!tags)
         tags = []
     
@@ -248,7 +250,11 @@ var submit_emote = function(emote_unsafe, files, update) {
         tags = [tags]
     tags = removeEmptyStrings(tags)
     
-    emote_dict.names = names
+    // Remove duplicates
+    tags = tags.filter(function(item, pos, self) {
+        return self.indexOf(item) == pos;
+    })
+    
     emote_dict.tags = tags
     
     if (css_user) {
