@@ -448,10 +448,7 @@ module.exports = {
             
             submit_emote(req.body, files, true)
             .then( function(emote) {
-                    res.json({
-                        msg:"Successfully edited emote",
-                        emote:emote
-                    })
+                    res.view( {emote:emote} )
                 })
             .catch( function(err) {
                 res.serverError(err);
