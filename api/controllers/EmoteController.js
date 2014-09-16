@@ -115,28 +115,54 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
     })
     .then( function(emote) {
         
+        var new_names_dict = {}
+        names.forEach(function(value, index, arr) {
+            new_names_dict[value] = true
+        })
+        
         var old_names = array_name_picker(emote.names)
         var old_names_dict = {}
         old_names.forEach(function(value, index, arr) {
             old_names_dict[value] = true
+            
+            if (!new_names_dict[value]) {
+                emote.names.remove(value)
+            }
         })
+        
         var names_promises = names.map( function(name) {
             // Note: We don't use findOrCreate here so it fails if it already exist. We shall not override any existing names.
             if(!old_names_dict[name]) {
-                return Name.create(
+                return Name.findOrCreate(
+                    {
+                        where: {
+                            name: name,
+                        }
+                    },
                     {
                         name: name,
-                        emote: emote.id,
                     }
                 )
+                .then( function(name) {
+                    if(!name.emote)
+                        emote.names.add(name)
+                })
             }
-            // TODO: Add code for removing names
+        })
+        
+        var new_tags_dict = {}
+        tags.forEach(function(value, index, arr) {
+            new_tags_dict[value] = true
         })
         
         var old_tags = array_name_picker(emote.tags)
         var old_tags_dict = {}
         old_tags.forEach(function(value, index, arr) {
             old_tags_dict[value] = true
+            
+            if (!new_tags_dict[value]) {
+                emote.tags.remove(value)
+            }
         })
         var tags_promises = tags.map( function(tag) {
             if(!old_tags_dict[tag])
@@ -152,16 +178,14 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
                     }
                 )
                 .then( function(tag) {
-                    tag.emotes.add(emote.id)
-                    return tag.save()
+                    emote.tags.add(tag)
                 })
                 return promise;
             }
-            // TODO: Add code for removing tags
         })
         
         return Q.allSettled( [].concat(names_promises, tags_promises) ) // I don't really care if setting the tags or names succeed.
-        .then(function(results) {return emote} )                        // So we don't check the resulting promises here.
+        .then(function(results) {return emote.save()} )                        // So we don't check the resulting promises here.
         .then(function() {
             return Emote.findOne({
                     where: {
@@ -205,7 +229,7 @@ var submit_emote = function(emote_unsafe, files, update) {
         emote_dict.src = src
     
     var removeEmptyStrings = function(array_with_strings) {
-        return array_with_strings.filter(function(s){return s.trim() != ""})
+        return array_with_strings.filter(function(s){return (""+s).trim() != ""})
     }
     
     if (!names)
