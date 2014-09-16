@@ -20,7 +20,8 @@ setTimeout(function sunrise () {
     <div class="main container clearfix">
         <p><%= __("You can change a emoticon here") %></p>
         <form action="/emote/edit?id=<%= emote.canonical_name %>" enctype="multipart/form-data" method="post">
-        
+            <input type='hidden' name='_csrf' value="<%= _csrf %>">
+            
             <div>
                 <label for="canonical_name">Canonical path</label>
                 <input id="canonical_name" type="text" name="canonical_name" required value="<%= emote.canonical_name %>" readonly >

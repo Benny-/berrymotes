@@ -20,7 +20,8 @@ setTimeout(function sunrise () {
     <div class="main container clearfix">
         <p><%= __("Fill out this form to submit a new emoticon:") %></p>
         <form action="/emote/submit" enctype="multipart/form-data" method="post">
-        
+            <input type='hidden' name='_csrf' value="<%= _csrf %>">
+            
             <div>
                 <label for="canonical_name">Canonical path*</label>
                 <input id="canonical_name" type="text" name="canonical_name" required placeholder="bt/yourname/sorrysocks">
