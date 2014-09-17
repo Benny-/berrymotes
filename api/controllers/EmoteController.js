@@ -7,6 +7,7 @@
 
 var fs = require('fs')
 var fsp_extra = require('fs-promise')
+var rmrf = require('rimraf-glob')
 var path = require('path')
 var image_size = require('image-size')
 var Q = require('q')
@@ -198,22 +199,6 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
     })
 }
 
-var move_image = function(from, to, overwrite) {
-    var file_promise = Q()
-    if(overwrite) {
-        file_promise = file_promise.then ( function() {
-            sails.log.debug("Removing " + to);
-            return fsp_extra.remove(to)
-        }, function(err) {
-            sails.log.error("Remove failed, but I don't care: " + err);
-        })
-    }
-    file_promise = file_promise.then ( function() {
-        return fsp_extra.move(from, to)
-    })
-    return file_promise
-}
-
 var submit_emote = function(emote_unsafe, files, update) {
     var emote_dict = {}
     
@@ -297,8 +282,20 @@ var submit_emote = function(emote_unsafe, files, update) {
         .then( function(dimensions) {
             emote_dict.width = dimensions.width
             emote_dict.height = dimensions.height
+            emote_dict.single_image_extension = dimensions.type
+            return dimensions.type
         })
-        .then( function() { move_image(emoticon_image.fd, emoticon_image_path, update) })
+        .then( function(type) {
+            var promise = Q()
+            if(update) {
+                promise = promise.then(function() {
+                    Q.nfcall(rmrf, emoticon_image_path + '.*')
+                })
+            }
+            return promise.then(function() {
+                return fsp_extra.move(emoticon_image.fd, emoticon_image_path+'.'+type)
+            })
+        })
     }
     else {
         base_image_promise = Q("Base image file unchanged");
@@ -309,8 +306,20 @@ var submit_emote = function(emote_unsafe, files, update) {
         .then( function(dimensions) {
             emote_dict["hover-width"] = dimensions.width
             emote_dict["hover-height"] = dimensions.height
+            emote_dict.single_hover_image_extension = dimensions.type
+            return dimensions.type
         })
-        .then( function() { move_image(emoticon_image_hover.fd, emoticon_image_hover_path, update) })
+        .then( function(type) {
+            var promise = Q()
+            if(update) {
+                promise = promise.then(function() {
+                    Q.nfcall(rmrf, emoticon_image_hover_path + '.*')
+                })
+            }
+            return promise.then(function() {
+                return fsp_extra.move(emoticon_image_hover.fd, emoticon_image_hover_path+'.'+type)
+            })
+        })
     }
     else {
         hover_image_promise = Q("Hover image file unchanged");
