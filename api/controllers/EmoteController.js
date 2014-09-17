@@ -486,8 +486,7 @@ module.exports = {
         var promise = undefined
         if (isNaN(+id)) {
             // id is a canonical name.
-            promise = Emote.findOne(
-            {
+            promise = Emote.findOne({
                 where: {
                     canonical_name: id.trim(),
                 }
@@ -496,8 +495,7 @@ module.exports = {
         else {
             // id is a numeric id.
             id = Math.floor(+id)
-            promise = Emote.findOne(
-            {
+            promise = Emote.findOne({
                 where: {
                     id: id,
                 }
@@ -516,8 +514,8 @@ module.exports = {
             res.view( {emote:emote} )
         })
         .catch(function(err) {
-            res.status(400);
-            res.view('emote/error', {error:err} );
+            res.status(400)
+            res.view('emote/error', {error:err} )
         })
         .done()
     }
@@ -557,8 +555,8 @@ module.exports = {
         res.json(emotes)
     })
     .catch(function(err) {
-        res.status(500);
-        res.view('emote/error', {error:err} );
+        res.status(500)
+        res.view('emote/error', {error:err} )
     })
     .done()
   },
