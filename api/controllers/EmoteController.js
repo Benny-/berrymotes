@@ -373,7 +373,7 @@ module.exports = {
                             img_animation: external_emote.img_animation,
                             single_image_extension: external_emote.single_image_extension,
                             single_hover_image_extension: external_emote.single_hover_image_extension,
-                            src: external_emote.src,
+                            src: external_emote.sr,
                             css: css,
                         }
                         
@@ -504,6 +504,46 @@ module.exports = {
         })
         .done()
     }
-  }
+  },
+  
+  legacy_export: function (req,res) {
+    Emote.find()
+    .populate('names')
+    .populate('tags')
+    .then(function(emotes) {
+        emotes = emotes.map(function(emote) {
+            var image_server_prefix = 'http://localhost:1337/'
+            
+            var obj = {
+                canonical: emote.canonical_name,
+                "background-image": image_server_prefix + emote.canonical_name,
+                width: +emote.width,
+                height: +emote.height,
+                img_animation: emote.img_animation,
+                single_image_extension: emote.single_image_extension,
+                sr: emote.src,
+                names: array_name_picker(emote.names),
+                tags: array_name_picker(emote.tags),
+            }
+            
+            // TODO: Tuck on css to the object.
+            
+            if (emote['hover-width']) {
+                obj["hover-background-position"] = image_server_prefix + emote.canonical_name + '_hover'
+                obj['single_hover_image_extension'] = emote.single_hover_image_extension
+                obj['hover-width'] = +emote['hover-width']
+                obj['hover-height'] = +emote['hover-height']
+            }
+            
+            return obj
+        })
+        res.json(emotes)
+    })
+    .catch(function(err) {
+        res.status(500);
+        res.view('emote/error', {error:err} );
+    })
+    .done()
+  },
 }
 
