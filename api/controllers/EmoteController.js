@@ -187,15 +187,6 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
         
         return Q.allSettled( [].concat(names_promises, tags_promises) ) // I don't really care if setting the tags or names succeed.
         .then(function(results) {return emote.save()} )                        // So we don't check the resulting promises here.
-        .then(function() {
-            return Emote.findOne({
-                    where: {
-                        canonical_name: canonical_name,
-                    }
-                })
-            .populate('names')
-            .populate('tags')
-        })
     })
 }
 
@@ -431,12 +422,20 @@ module.exports = {
                 return res.serverError(err);
             
             submit_emote(req.body, files)
+            // submit_emote() does not return a emote with populated
+            // associations. Therefore we must query the database again.
             .then( function(emote) {
-                    res.json({
-                        msg:"Successfully added emote",
-                        emote:emote
+                return Emote.findOne({
+                        where: {
+                            canonical_name: emote.canonical_name,
+                        }
                     })
+                .populate('names')
+                .populate('tags')
+                .then(function(emote) {
+                    res.view('emote/edit', {emote:emote} )
                 })
+            })
             .catch( function(err) {
                 res.serverError(err);
             })
@@ -456,6 +455,15 @@ module.exports = {
                 return res.serverError(err);
             
             submit_emote(req.body, files, true)
+            .then(function(emote) {
+                return Emote.findOne({
+                        where: {
+                            canonical_name: emote.canonical_name,
+                        }
+                    })
+                .populate('names')
+                .populate('tags')
+            })
             .then( function(emote) {
                     res.view( {emote:emote} )
                 })
