@@ -26,7 +26,7 @@ module.exports.policies = {
   *                                                                          *
   ***************************************************************************/
 
-  // '*': true,
+  '*': ['denied'],
 
   /***************************************************************************
   *                                                                          *
@@ -48,4 +48,27 @@ module.exports.policies = {
 		// before letting any users feed our rabbits
 		// feed : ['isNiceToAnimals', 'hasRabbitFood']
 	// }
+	
+  AuthController: {
+    '*': ['passport'],
+  },
+  
+  EmoteController: {
+    '*': ['denied'],
+    'submit': ['authenticated', 'passport'],
+    'edit': ['authenticated', 'passport'],
+  },
+  
+  TagController: {
+    '*': ['denied'],
+  },
+  
+  NameController: {
+    '*': ['denied'],
+  },
+  
+  UserController: {
+    '*': ['denied'],
+  },
 };
+
