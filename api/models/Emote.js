@@ -12,10 +12,17 @@ module.exports = {
         canonical_name: {
             type: 'STRING',
             unique: true,
+            required: true,
         },
         
-        width: 'INT',
-        height: 'INT',
+        width: {
+            type: 'INT',
+            required: true,
+        },
+        height: {
+            type: 'INT',
+            required: true,
+        },
         "hover-width": 'INT',
         "hover-height": 'INT',
         img_animation: 'BOOLEAN',
