@@ -55,6 +55,7 @@ module.exports.policies = {
   
   EmoteController: {
     '*':                ['passport', 'denied'],
+    'find':             true,
     'submit':           ['passport', 'authenticated'],
     'edit':             ['passport', 'authenticated'],
     'bulk_upload':      ['passport', 'admin'],
@@ -63,10 +64,12 @@ module.exports.policies = {
   
   TagController: {
     '*':                ['passport', 'denied'],
+    'find':             true,
   },
   
   NameController: {
     '*':                ['passport', 'denied'],
+    'find':             true,
   },
   
   UserController: {
