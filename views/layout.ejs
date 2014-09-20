@@ -34,10 +34,17 @@
   </head>
 
   <body>
+    
+    <h2>
+      <% if (typeof user !== 'undefined') { %>
+      You are logged in as <%= user.username %>
+      <% } else { %>
+      You are not logged in
+      <% } %>
+    </h2>
+    
     <%- body %>
-
-
-
+    
     <!--
         Client-side Templates
         ========================
