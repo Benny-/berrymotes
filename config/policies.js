@@ -26,7 +26,7 @@ module.exports.policies = {
   *                                                                          *
   ***************************************************************************/
 
-  '*': ['denied'],
+  '*': ['passport', 'denied'],
 
   /***************************************************************************
   *                                                                          *
@@ -50,25 +50,27 @@ module.exports.policies = {
 	// }
 	
   AuthController: {
-    '*': ['passport'],
+    '*':                ['passport'],
   },
   
   EmoteController: {
-    '*': ['denied'],
-    'submit': ['authenticated', 'passport'],
-    'edit': ['authenticated', 'passport'],
+    '*':                ['passport', 'denied'],
+    'submit':           ['passport', 'authenticated'],
+    'edit':             ['passport', 'authenticated'],
+    'bulk_upload':      ['passport', 'admin'],
+    'legacy_export':    ['passport', 'admin'],
   },
   
   TagController: {
-    '*': ['denied'],
+    '*':                ['passport', 'denied'],
   },
   
   NameController: {
-    '*': ['denied'],
+    '*':                ['passport', 'denied'],
   },
   
   UserController: {
-    '*': ['denied'],
+    '*':                ['passport', 'denied'],
   },
 };
 
