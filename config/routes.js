@@ -32,9 +32,7 @@ module.exports.routes = {
   *                                                                          *
   ***************************************************************************/
 
-  '/': {
-    view: 'homepage'
-  },
+    '/': 'StaticController.homepage',
   
     'get /login': 'AuthController.login',
     'get /logout': 'AuthController.logout',

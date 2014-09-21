@@ -53,6 +53,10 @@ module.exports.policies = {
     '*':                ['passport'],
   },
   
+  StaticController: {
+    '*':                ['passport'],
+  },
+  
   EmoteController: {
     '*':                ['passport', 'denied'],
     'find':             true,
