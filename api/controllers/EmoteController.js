@@ -190,6 +190,7 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
     })
 }
 
+// submit_emote() does not return a emote with populated associations.
 var submit_emote = function(emote_unsafe, files, update) {
     var emote_dict = {}
     
@@ -422,19 +423,8 @@ module.exports = {
                 return res.serverError(err);
             
             submit_emote(req.body, files)
-            // submit_emote() does not return a emote with populated
-            // associations. Therefore we must query the database again.
             .then( function(emote) {
-                return Emote.findOne({
-                        where: {
-                            canonical_name: emote.canonical_name,
-                        }
-                    })
-                .populate('names')
-                .populate('tags')
-                .then(function(emote) {
-                    res.view('emote/edit', {emote:emote} )
-                })
+                res.redirect('emote/edit?id='+emote.canonical_name)
             })
             .catch( function(err) {
                 res.serverError(err);
