@@ -11,6 +11,7 @@ var rmrf = require('rimraf-glob')
 var path = require('path')
 var image_size = require('image-size')
 var Q = require('q')
+var validate_canonical_name = require('./lib/validate_canonical_name')
 
 Q.longStackSupport = true;
 
@@ -190,7 +191,7 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
     })
 }
 
-// submit_emote() does not return a emote with populated associations.
+// submit_emote() does not return a promise with emote's associations populated.
 var submit_emote = function(emote_unsafe, files, update) {
     var emote_dict = {}
     
@@ -200,7 +201,8 @@ var submit_emote = function(emote_unsafe, files, update) {
     var tags = emote_unsafe.tags
     var src = emote_unsafe.src
     
-    canonical_name = canonical_name.trim() // More checking is required on canonical_name.
+    canonical_name = validate_canonical_name(canonical_name)
+    
     if(src)
         src = src.trim()
         emote_dict.src = src
@@ -332,6 +334,17 @@ var submit_emote = function(emote_unsafe, files, update) {
     })
 }
 
+// Wrapped in a promise candy
+// submit_emote() can throw exceptions.
+// But we like to handle them in promise rejection handler instead of try/catch
+// So we do this!
+var wrapped_submit_emote = function(emote_unsafe, files, update) {
+    return Q()
+    .then(function () {
+        return submit_emote(emote_unsafe, files, update)
+    })
+}
+
 module.exports = {
 
   bulk_upload: function(req, res) {
@@ -422,7 +435,7 @@ module.exports = {
             if (err)
                 return res.serverError(err);
             
-            submit_emote(req.body, files)
+            wrapped_submit_emote(req.body, files)
             .then( function(emote) {
                 res.redirect('emote/edit?id='+emote.canonical_name)
             })
@@ -444,7 +457,7 @@ module.exports = {
             if (err)
                 return res.serverError(err);
             
-            submit_emote(req.body, files, true)
+            wrapped_submit_emote(req.body, files, true)
             .then(function(emote) {
                 return Emote.findOne({
                         where: {
