@@ -6,6 +6,7 @@
  */
 
 var fs = require('fs')
+var fsp = require('fs-promise')
 var fsp_extra = require('fs-promise')
 var rmrf = require('rimraf-glob')
 var path = require('path')
@@ -101,7 +102,7 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
             },
             emote_dict)
         .then(function(results) {
-            updated_emote = results[0]
+            var updated_emote = results[0]
             
             // I kinda need the populated fields, but Emote.update()
             // Does not support chaining .populate()
@@ -192,7 +193,7 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
 }
 
 // submit_emote() does not return a promise with emote's associations populated.
-var submit_emote = function(emote_unsafe, files, update) {
+var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, update) {
     var emote_dict = {}
     
     var canonical_name = emote_unsafe.canonical_name
@@ -240,6 +241,7 @@ var submit_emote = function(emote_unsafe, files, update) {
     
     if (css_user) {
         var css = {}
+        var css_arr = undefined
         if(!Array.isArray(css_user))
             css_user = [css_user]
         css_user = removeEmptyStrings(css_user)
@@ -256,11 +258,8 @@ var submit_emote = function(emote_unsafe, files, update) {
         emote_dict.css = css
     }
     
-    var emoticon_image = files[0] // emoticon_image is allowed to be undefined if 'update' is false
-    var emoticon_image_hover = files[1] // emoticon_image_hover is allowed to be undefined
-    
     var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
-    var emoticon_image_hover_path = emoticon_image_path + '_hover'
+    var emoticon_hover_image_path = emoticon_image_path + '_hover'
     
     var file_promise = undefined
     var base_image_promise = undefined
@@ -295,8 +294,8 @@ var submit_emote = function(emote_unsafe, files, update) {
         base_image_promise = Q("Base image file unchanged");
     }
     
-    if (emoticon_image_hover) {
-        hover_image_promise = Q.nfcall(image_size, emoticon_image_hover.fd)
+    if (emoticon_hover_image) {
+        hover_image_promise = Q.nfcall(image_size, emoticon_hover_image.fd)
         .then( function(dimensions) {
             emote_dict["hover-width"] = dimensions.width
             emote_dict["hover-height"] = dimensions.height
@@ -307,11 +306,11 @@ var submit_emote = function(emote_unsafe, files, update) {
             var promise = Q()
             if(update) {
                 promise = promise.then(function() {
-                    Q.nfcall(rmrf, emoticon_image_hover_path + '.*')
+                    Q.nfcall(rmrf, emoticon_hover_image_path + '.*')
                 })
             }
             return promise.then(function() {
-                return fsp_extra.move(emoticon_image_hover.fd, emoticon_image_hover_path+'.'+type)
+                return fsp_extra.move(emoticon_hover_image.fd, emoticon_hover_image_path+'.'+type)
             })
         })
     }
@@ -338,11 +337,25 @@ var submit_emote = function(emote_unsafe, files, update) {
 // submit_emote() can throw exceptions.
 // But we like to handle them in promise rejection handler instead of try/catch
 // So we do this!
-var wrapped_submit_emote = function(emote_unsafe, files, update) {
+var wrapped_submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, update) {
     return Q()
     .then(function () {
-        return submit_emote(emote_unsafe, files, update)
+        return submit_emote(emote_unsafe, emoticon_image, emoticon_hover_image, update)
     })
+}
+
+var upload_promise = function(req, field_name) {
+    var deferred = Q.defer();
+    
+    req.file(field_name).upload(function (err, files) {
+        if (err) {
+            deferred.reject(new Error(error));
+        } else {
+            deferred.resolve(files);
+        }
+    })
+    
+    return deferred.promise;
 }
 
 module.exports = {
@@ -350,78 +363,95 @@ module.exports = {
   bulk_upload: function(req, res) {
     
     if(req.is('multipart/form-data')) {
-        req.file('json_emote_file').upload(function (err, files) {
-            if (err)
-                return res.serverError(err);
-
-            fs.readFile( files[0].fd, { encoding : 'utf-8', flag: 'r' }, function(err, data) {
-              
-                if(err) {
-                    res.serverError(err);
-                    return
-                }
-
-                var external_emotes = JSON.parse(data)
-
-                var result = Q();
-                external_emotes.map( function(external_emote) {
-                    // We process the emotes in some order so the database adapter does not get overloaded.
-                    // Processing everything at the same time causes disruption in other services this web server provides.
-                    result = result.then( function() {
-                        var css = {}
-                        var canonical_name = external_emote.canonical
-                        var names = external_emote.names
-                        var tags = external_emote.tags
-                        
-                        if(!names)
-                            names = []
-                        
-                        if(!tags)
-                            tags = []
-                        
-                        emote_dict = {
-                            height: external_emote.height,
-                            width: external_emote.width,
-                            "hover-width": external_emote["hover-width"],
-                            "hover-height": external_emote["hover-height"],
-                            img_animation: external_emote.img_animation,
-                            single_image_extension: external_emote.single_image_extension,
-                            single_hover_image_extension: external_emote.single_hover_image_extension,
-                            src: external_emote.sr,
-                            css: css,
-                        }
-                        
-                        return Emote.findOne({
-                                where: {
-                                    canonical_name: canonical_name,
-                                }
-                            })
-                        .then(function(emote) {
-                            if(emote) {
-                                sails.log.debug("Bulk import: Updating old emote: " + emote.id + " " + canonical_name )
-                                // Consider re-using the 'emote' variable by passing in into the update_emote() function somehow.
-                                return update_emote(canonical_name, emote_dict, names, tags)
-                            }
-                            else {
-                                return create_emote(canonical_name, emote_dict, names, tags)
-                                .then( function(emote) {
-                                    sails.log.debug("Bulk import: Created new emote: " + emote.id + " " + canonical_name )
-                                })
+        
+        upload_promise(req, 'json_emote_file')
+        .then(function(files) {
+            return fsp.readFile( files[0].fd, { encoding : 'utf-8', flag: 'r' })
+        })
+        .then(function(text) {
+            var external_emotes = JSON.parse(text)
+            return external_emotes
+        })
+        .then(function(external_emotes) {
+            res.json({
+                    msg:"Processing " + external_emotes.length + " emotes in background"
+            })
+            return external_emotes
+        }, function(err) {
+            res.status(500)
+            res.view('emote/error', {error:err} )
+        })
+        .then(function(external_emotes) {
+            sails.log.debug("Bulk import: Processing " + external_emotes.length + " emotes")
+            
+            var result = Q()
+            var created = 0
+            var updated = 0
+            external_emotes.map( function(external_emote) {
+                // We process the emotes in some order so the database adapter does not get overloaded.
+                // Processing everything at the same time causes disruption in other services this web server provides.
+                result = result.then( function() {
+                    var css = {}
+                    var canonical_name = external_emote.canonical
+                    var names = external_emote.names
+                    var tags = external_emote.tags
+                    
+                    if(!names)
+                        names = []
+                    
+                    if(!tags)
+                        tags = []
+                    
+                    var emote_dict = {
+                        height: external_emote.height,
+                        width: external_emote.width,
+                        "hover-width": external_emote["hover-width"],
+                        "hover-height": external_emote["hover-height"],
+                        img_animation: external_emote.img_animation,
+                        single_image_extension: external_emote.single_image_extension,
+                        single_hover_image_extension: external_emote.single_hover_image_extension,
+                        src: external_emote.sr,
+                        css: css,
+                    }
+                    
+                    return [canonical_name, emote_dict, names, tags]
+                })
+                .spread( function(canonical_name, emote_dict, names, tags) {
+                    return Emote.findOne({
+                            where: {
+                                canonical_name: canonical_name,
                             }
                         })
-                    } )
+                    .then(function(emote) {
+                        if(emote) {
+                            sails.log.debug("Bulk import: Updating old emote: " + emote.id + " " + canonical_name )
+                            // Consider re-using the 'emote' variable by passing in into the update_emote() function somehow.
+                            return update_emote(canonical_name, emote_dict, names, tags)
+                        }
+                        else {
+                            return create_emote(canonical_name, emote_dict, names, tags)
+                            .then( function(emote) {
+                                sails.log.debug("Bulk import: Created new emote: " + emote.id + " " + canonical_name )
+                            })
+                        }
+                    })
                 })
-                result.catch(function(err) {
-                    console.warn("catch","Something bad happened: " + err)
-                })
-                .done();
-
-                res.json({
-                    message: files.length + ' file(s) uploaded successfully. Processing will happen in the background now and might takes a few minutes.',
-                    files: files
-                });
-            });
-        });
+            })
+            return result.then(function(){
+                        return {
+                            processed:external_emotes.length,
+                            created:created,
+                            updated:updated,
+                        }
+                    })
+        })
+        .then(function(stats) {
+            sails.log.debug("Bulk import: Done -> ", stats)
+        })
+        .catch(function(err) {
+            sails.log.error("Bulk import: Error -> ", err)
+        })
+        .done()
     }
     else
     {
@@ -431,19 +461,24 @@ module.exports = {
   
   submit: function (req,res) {
     if(req.is('multipart/form-data')) {
-        req.file('emoticon_images').upload(function (err, files) {
-            if (err)
-                return res.serverError(err);
+        
+        Q.all([
+            upload_promise(req, 'emoticon_image'),
+            upload_promise(req, 'emoticon_hover_image'),
+        ])
+        .then(function(results) {
+            var emoticon_image = results[0][0]
+            var emoticon_hover_image = results[1][0]
             
-            wrapped_submit_emote(req.body, files)
-            .then( function(emote) {
-                res.redirect('emote/edit?id='+emote.canonical_name)
-            })
-            .catch( function(err) {
-                res.serverError(err);
-            })
-            .done()
-        });
+            return wrapped_submit_emote(req.body, emoticon_image, emoticon_hover_image)
+        })
+        .then( function(emote) {
+            res.redirect('emote/edit?id='+emote.canonical_name)
+        })
+        .catch( function(err) {
+            res.serverError(err)
+        })
+        .done()
     }
     else
     {
@@ -453,28 +488,35 @@ module.exports = {
   
   edit: function (req,res) {
     if(req.is('multipart/form-data')) {
-        req.file('emoticon_images').upload(function (err, files) {
-            if (err)
-                return res.serverError(err);
+        Q.all([
+            upload_promise(req, 'emoticon_image'),
+            upload_promise(req, 'emoticon_hover_image'),
+        ])
+        .then(function(results) {
+            var emoticon_image = results[0][0]
+            var emoticon_hover_image = results[1][0]
             
-            wrapped_submit_emote(req.body, files, true)
-            .then(function(emote) {
-                return Emote.findOne({
-                        where: {
-                            canonical_name: emote.canonical_name,
-                        }
-                    })
-                .populate('names')
-                .populate('tags')
+            return wrapped_submit_emote(req.body,
+                            emoticon_image,
+                            emoticon_hover_image,
+                            true)
+        })
+        .then(function(emote) {
+            return Emote.findOne({
+                where: {
+                    canonical_name: emote.canonical_name,
+                }
             })
-            .then( function(emote) {
-                    res.view( {emote:emote} )
-                })
-            .catch( function(err) {
-                res.serverError(err);
-            })
-            .done()
-        });
+            .populate('names')
+            .populate('tags')
+        })
+        .then( function(emote) {
+            res.view( {emote:emote} )
+        })
+        .catch( function(err) {
+            res.serverError(err);
+        })
+        .done()
     }
     else
     {

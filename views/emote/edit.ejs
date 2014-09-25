@@ -60,20 +60,24 @@ setTimeout(function sunrise () {
 <% } %>
             </div>
             
+            <!-- This checkbox must be before the file upload
+                form due to the way the server handles file uploads
+                See https://github.com/balderdashy/skipper#text-parameters -->
+            <div><label>Remove hover image<input type="checkbox" name="remove_hover"></label></div>
+
             <div>
                 <label for="emoticon_image">Emote image</label>
                 <div><img width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
-                <input id="emoticon_image" type="file" name="emoticon_images" onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <input id="emoticon_image" type="file" name="emoticon_image" onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>
             </div>
             
             <div>
-                <label for="emoticon_image_hover">Hover image</label>
+                <label for="emoticon_hover_image">Hover image</label>
 <% if(emote['hover-width']) { %>
-                <div><label>Remove hover image<input type="checkbox" name="remove_hover"></label></div>
                 <div><img width="<%= emote['hover-width'] %>" height="<%= emote['hover-height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
 <% } %>
-                <input id="emoticon_image_hover" type="file" name="emoticon_images" onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <input id="emoticon_hover_image" type="file" name="emoticon_hover_image" onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>
             </div>
             
