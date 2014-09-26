@@ -36,7 +36,6 @@
     "sails": "~0.10.5",
     "sails-disk": "~0.10.3",
     "sails-generate-auth": "~0.1.6",
-    "sails-postgresql": "~0.10.9",
     "validator": "~3.18.1"
   },
   "scripts": {
