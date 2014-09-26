@@ -1,0 +1,65 @@
+
+<link type="text/css" href='http://sailsjs.org/styles/fonts.css' rel='stylesheet'/>
+
+<script type="text/javascript">
+setTimeout(function sunrise () {
+    document.getElementsByClassName('header')[0].style.backgroundColor = '#118798';
+}, 0);
+</script>
+
+<div class="default-page">
+    <div class="header">
+        <h1 id="main-title" class="container"><%= __('View a emoticon') %></h1>
+        <h3 class="container">You're looking at: <code><%= view.pathFromApp + '.' +view.ext %></code></h3>
+    </div>
+    <div class="main container clearfix">
+        <p><%= __("You can view a emoticon here") %></p>
+        <div>
+            <label for="canonical_name">Canonical path</label>
+            <input id="canonical_name" type="text" name="canonical_name" required value="<%= emote.canonical_name %>" readonly >
+        </div>
+
+        <div id="names_container">
+            <label for="names">Name(s)</label>
+<% for(var i=0; i<emote.names.length; i++) {%>
+            <div><input id="names" name="names" value="<%= emote.names[i].name %>" readonly></div>
+<% } %>
+        </div>
+
+        <div id="css_rules_container">
+            <label for="css">CSS rule(s)</label>
+<% for(var prop in emote.css) {%>
+            <div><input id="css" name="css" value="<%= prop + ':' + emote.css[prop] %>" readonly></div>
+<% } %>
+        </div>
+
+        <div id="tags_container">
+            <label for="tags">Tag(s)</label>
+<% for(var i=0; i<emote.tags.length; i++) {%>
+            <div><input id="tags" name="tags" value="<%= emote.tags[i].name %>" readonly></div>
+<% } %>
+        </div>
+
+        <div>
+            <label for="src">Image source</label>
+<% if(emote.src) { %>
+            <input id="src" type="url" name="src" value="<%= emote.src %>" readonly>
+<% } else { %>
+            <input id="src" type="url" name="src" placeholder="This emote has no source" readonly>
+<% } %>
+        </div>
+
+        <div>
+            <label for="emoticon_image">Emote image</label>
+            <div><img width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
+        </div>
+
+<% if(emote['hover-width']) { %>
+        <div>
+            <label for="emoticon_hover_image">Hover image</label>
+            <div><img width="<%= emote['hover-width'] %>" height="<%= emote['hover-height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
+        </div>
+<% } %>
+        
+    </div>
+</div>

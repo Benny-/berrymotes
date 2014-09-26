@@ -486,6 +486,52 @@ module.exports = {
     }
   },
   
+  view: function (req,res) {
+        var id = req.query.id
+        
+        if (!id) {
+            res.status(400);
+            res.view('emote/error', {error:"You must supply a valid id. A canonical name or a numeric id."} );
+            return
+        }
+        
+        var promise = undefined
+        if (isNaN(+id)) {
+            // id is a canonical name.
+            promise = Emote.findOne({
+                where: {
+                    canonical_name: id.trim(),
+                }
+            })
+        }
+        else {
+            // id is a numeric id.
+            id = Math.floor(+id)
+            promise = Emote.findOne({
+                where: {
+                    id: id,
+                }
+            })
+        }
+        promise = promise
+        .populate('names')
+        .populate('tags')
+        
+        promise.then( function(emote) {
+            if (emote === undefined)
+                throw new Error("Could not find a emote with id: "+id)
+            return emote
+        })
+        .then(function(emote) {
+            res.view( {emote:emote} )
+        })
+        .catch(function(err) {
+            res.status(400)
+            res.view('emote/error', {error:err} )
+        })
+        .done()
+  },
+  
   edit: function (req,res) {
     if(req.is('multipart/form-data')) {
         Q.all([
