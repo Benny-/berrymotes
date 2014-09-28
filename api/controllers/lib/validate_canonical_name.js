@@ -3,7 +3,7 @@ var contains = function(str, substr) {
     return str.indexOf(substr) != -1;
 }
 
-module.exports = validate_canonican_name = function(unsafe_canonical_name) {
+module.exports = function(unsafe_canonical_name) {
     unsafe_canonical_name = unsafe_canonical_name.trim()
 
     if (contains(unsafe_canonical_name, "."))
@@ -25,4 +25,3 @@ module.exports = validate_canonican_name = function(unsafe_canonical_name) {
     var safe_canonical_name = unsafe_canonical_name
     return safe_canonical_name
 }
-

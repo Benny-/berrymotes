@@ -5,14 +5,16 @@
  * @help        :: See http://links.sailsjs.org/docs/controllers
  */
 
-var fs = require('fs')
+var path = require('path')
+
 var fsp = require('fs-promise')
 var fsp_extra = require('fs-promise')
 var rmrf = require('rimraf-glob')
-var path = require('path')
 var image_size = require('image-size')
 var Q = require('q')
+
 var validate_canonical_name = require('./lib/validate_canonical_name')
+var listdir = require('./lib/listdir')
 
 Q.longStackSupport = true;
 
@@ -345,17 +347,17 @@ var wrapped_submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover
 }
 
 var upload_promise = function(req, field_name) {
-    var deferred = Q.defer();
+    var deferred = Q.defer()
     
     req.file(field_name).upload(function (err, files) {
         if (err) {
-            deferred.reject(new Error(error));
+            deferred.reject(new Error(err))
         } else {
-            deferred.resolve(files);
+            deferred.resolve(files)
         }
     })
     
-    return deferred.promise;
+    return deferred.promise
 }
 
 module.exports = {
@@ -484,6 +486,87 @@ module.exports = {
     {
       res.view();
     }
+  },
+  
+  // Yes, we use the filesystem hierachy to store data.
+  // Reason: The canonical names are like a hierachy and the filesystem is a hierachy.
+  // Special care should be taken ignore files not related to emoticons using
+  // blacklists and/or whitelists.
+  ls: function (req,res) {
+      var req_relative_loc_unsafe = req.query.loc
+      var req_relative_loc = ""
+      
+      var dirs = [
+          "emoticons/uploaded".replace("/",path.sep),
+          "reddit_emote_scraper/output".replace("/",path.sep),
+      ]
+      
+      if (req_relative_loc_unsafe) {
+          req_relative_loc = req_relative_loc_unsafe.trim().replace(".", "").replace("\\","")
+          req_relative_loc = req_relative_loc.replace(/\/+$/, ""); // Remove trailing slashes
+          req_relative_loc = req_relative_loc.replace(/^\/+/, ""); // Remove starting slashes
+          req_relative_loc = req_relative_loc + '/'
+      }
+      
+    var canonical_names = []
+    var canonical_name_present = {}
+
+    var combined_dirs = []
+    var combined_dir_present = {}
+      
+    Q.all( dirs.map( function(dir) {
+
+        return listdir(path.join(dir, req_relative_loc.replace("/",path.sep)))
+        .then(function(results) {
+            results.files.forEach(function(file) {
+                var ext = path.extname(file)
+                var basename = path.basename(file, ext)
+                
+                if (file.toUpperCase().indexOf('_hover'.toUpperCase()) === -1) {
+                    if ( ext !== "" &&
+                        '.bmp .gif .jpg .jpeg .png .psd .tiff .webp'.toUpperCase().indexOf(ext.toUpperCase()) !== -1) {
+                        if(!canonical_name_present[req_relative_loc + basename]) {
+                            canonical_name_present[req_relative_loc + basename] = true
+                            canonical_names.push(req_relative_loc + basename)
+                        }
+                    }
+                }
+            })
+
+            results.dirs.forEach(function(dir) {
+                
+                if (dir.toUpperCase().indexOf('_exploded'.toUpperCase()) === -1) {
+                    if(!combined_dir_present[req_relative_loc + dir]) {
+                        combined_dir_present[req_relative_loc + dir] = true
+                        combined_dirs.push(req_relative_loc + dir)
+                    }
+                }
+                
+            })
+        }, function(err) {
+            // Emoticons are stored in multiple directories.
+            // 
+            // Some emoticons (for example, the ones from reddit_emote_scraper)
+            // do not exist in emoticons/uploaded. So we get ENOENT errors here
+            // if we listdir() a non-existing directory in one of the
+            // paths. This is entirely expected.
+            // 
+            // sails.log.debug("Ignoring list directory error", err)
+        })
+    }))
+    .then(function() {
+        var locals = {
+            canonical_names:canonical_names,
+            dirs:combined_dirs,
+        }
+        
+        if (req.wantsJSON) {
+            res.json(locals)
+        } else {
+            res.view(locals)
+        }
+    })
+    .done()
   },
   
   view: function (req,res) {

@@ -61,6 +61,7 @@ module.exports.policies = {
     '*':                ['passport', 'denied'],
     'find':             true,
     'submit':           ['passport', 'authenticated'],
+    'ls':              ['passport'],
     'view':             ['passport'],
     'edit':             ['passport', 'authenticated'],
     'bulk_upload':      ['passport', 'admin'],
