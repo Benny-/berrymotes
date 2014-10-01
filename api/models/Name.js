@@ -17,6 +17,7 @@ module.exports = {
 
         emote: {
             model: 'emote',
+            index: true,
         },
 
     }

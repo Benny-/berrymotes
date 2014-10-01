@@ -11,12 +11,14 @@ module.exports = {
 
         name: {
             type: 'STRING',
-            primaryKey: true,
+            unique: true,
+            notNull: true,
             required: true,
         },
 
         emotes: {
             collection: 'emote',
+            index: true,
             via: 'tags',
         },
 

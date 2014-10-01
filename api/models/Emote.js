@@ -12,22 +12,39 @@ module.exports = {
         canonical_name: {
             type: 'STRING',
             unique: true,
+            notNull: true,
             required: true,
         },
         
         width: {
             type: 'INT',
+            notNull: true,
             required: true,
         },
         height: {
             type: 'INT',
+            notNull: true,
             required: true,
         },
         "hover-width": 'INT',
         "hover-height": 'INT',
-        img_animation: 'BOOLEAN',
-        hover_animation: 'BOOLEAN',
-        single_image_extension: 'STRING',
+        img_animation: {
+            type: 'BOOLEAN',
+            defaultsTo: false,
+            notNull: true,
+        },
+        hover_animation: {
+            type: 'BOOLEAN',
+            defaultsTo: false,
+            notNull: true,
+        },
+        single_image_extension: {
+            type: 'STRING',
+// The output generated from reddit_emote_scraper must first be stricter before
+// uncommenting these.
+//            notNull: true,
+//            required: true,
+        },
         single_hover_image_extension: 'STRING',
         src: 'STRING',
         alt_text: 'STRING',
@@ -47,6 +64,7 @@ module.exports = {
         tags: {
             collection: 'tag',
             via: 'emotes',
+            index: true,
             dominant: true,
         },
         
