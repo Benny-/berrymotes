@@ -701,11 +701,11 @@ module.exports = {
     .populate('tags')
     .then(function(emotes) {
         emotes = emotes.map(function(emote) {
-            var image_server_prefix = 'http://localhost:1337/'
+            var image_url_prefix = sails.config.emoticons.image_url_prefix
             
             var obj = {
                 canonical: emote.canonical_name,
-                "background-image": image_server_prefix + emote.canonical_name,
+                "background-image": image_url_prefix + emote.canonical_name,
                 width: +emote.width,
                 height: +emote.height,
                 img_animation: emote.img_animation,
@@ -718,7 +718,7 @@ module.exports = {
             // TODO: Tuck on css to the object.
             
             if (emote['hover-width']) {
-                obj["hover-background-position"] = image_server_prefix + emote.canonical_name + '_hover'
+                obj["hover-background-position"] = image_url_prefix + emote.canonical_name + '_hover'
                 obj['single_hover_image_extension'] = emote.single_hover_image_extension
                 obj['hover-width'] = +emote['hover-width']
                 obj['hover-height'] = +emote['hover-height']
