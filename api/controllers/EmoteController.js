@@ -92,8 +92,8 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
             }
         })
     .then( function(emote) {
-        if(!emote)
-            throw new Error("Emote not found")
+        if (!emote)
+            throw new Error("Could not find a emote with canonical_name: "+canonical_name)
         return emote
     })
     .then( function(emote) {
@@ -194,8 +194,10 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
     })
 }
 
-// submit_emote() does not return a promise with emote's associations populated.
-var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, update) {
+// The promise returned from submit_emote() will resolve with the updated/created
+// emote object. But the associations will not be populated.
+// The user argument is optional.
+var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, update, user) {
     var emote_dict = {}
     
     var canonical_name = emote_unsafe.canonical_name
@@ -265,6 +267,18 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
             css[css_arr[0]] = css_arr[1]
         }
         emote_dict.css = css
+    }
+    
+    if(user)
+    {
+        if(update)
+        {
+            emote_dict.updated_by = user.id
+        }
+        else
+        {
+            emote_dict.created_by = user.id
+        }
     }
     
     var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
@@ -347,10 +361,10 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
 // submit_emote() can throw exceptions.
 // But we like to handle them in promise rejection handler instead of try/catch
 // So we do this!
-var wrapped_submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, update) {
+var wrapped_submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, update, user) {
     return Q()
     .then(function () {
-        return submit_emote(emote_unsafe, emoticon_image, emoticon_hover_image, update)
+        return submit_emote(emote_unsafe, emoticon_image, emoticon_hover_image, update, user)
     })
 }
 
@@ -489,7 +503,11 @@ module.exports = {
             var emoticon_image = results[0][0]
             var emoticon_hover_image = results[1][0]
             
-            return wrapped_submit_emote(req.body, emoticon_image, emoticon_hover_image)
+            return wrapped_submit_emote(req.body,
+                                        emoticon_image,
+                                        emoticon_hover_image,
+                                        false,
+                                        req.user)
         })
         .then( function(emote) {
             res.redirect('emote/edit?id='+emote.canonical_name)
@@ -645,7 +663,8 @@ module.exports = {
             return wrapped_submit_emote(req.body,
                             emoticon_image,
                             emoticon_hover_image,
-                            true)
+                            true,
+                            req.user)
         })
         .then(function(emote) {
             return Emote.findOne({
@@ -697,7 +716,7 @@ module.exports = {
         .populate('tags')
         
         promise.then( function(emote) {
-            if (emote === undefined)
+            if (!emote)
                 throw new Error("Could not find a emote with id: "+id)
             return emote
         })
