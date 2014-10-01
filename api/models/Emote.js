@@ -26,6 +26,11 @@ module.exports = {
             notNull: true,
             required: true,
         },
+        "has-hover": {
+            type: 'BOOLEAN',
+            defaultsTo: false,
+            notNull: true,
+        },
         "hover-width": 'INT',
         "hover-height": 'INT',
         img_animation: {
@@ -40,10 +45,8 @@ module.exports = {
         },
         single_image_extension: {
             type: 'STRING',
-// The output generated from reddit_emote_scraper must first be stricter before
-// uncommenting these.
-//            notNull: true,
-//            required: true,
+            notNull: true,
+            required: true,
         },
         single_hover_image_extension: 'STRING',
         src: 'STRING',
