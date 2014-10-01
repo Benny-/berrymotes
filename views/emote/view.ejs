@@ -18,7 +18,16 @@ setTimeout(function sunrise () {
             <label for="canonical_name">Canonical path</label>
             <input id="canonical_name" type="text" name="canonical_name" required value="<%= emote.canonical_name %>" readonly >
         </div>
-
+        
+            <div>
+                <label for="alt_text">Alt text</label>
+<% if(emote.alt_text) { %>
+                <input id="alt_text" type="text" name="alt_text" value="<%= emote.alt_text %>" placeholder="Text for blind mammals or text only clients" readonly>
+<% } else { %>
+                <input id="alt_text" type="text" name="alt_text" placeholder="Text for blind mammals or text only clients" readonly>
+<% } %>
+            </div>
+        
         <div id="names_container">
             <label for="names">Name(s)</label>
 <% for(var i=0; i<emote.names.length; i++) {%>
