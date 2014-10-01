@@ -26,7 +26,7 @@ module.exports = {
             notNull: true,
             required: true,
         },
-        "has-hover": {
+        "has_hover": {
             type: 'BOOLEAN',
             defaultsTo: false,
             notNull: true,

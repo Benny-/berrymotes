@@ -306,7 +306,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     if (emoticon_hover_image) {
         hover_image_promise = Q.nfcall(image_size, emoticon_hover_image.fd)
         .then( function(dimensions) {
-            emote_dict["has-hover"] = true
+            emote_dict["has_hover"] = true
             emote_dict["hover-width"] = dimensions.width
             emote_dict["hover-height"] = dimensions.height
             emote_dict.single_hover_image_extension = dimensions.type
@@ -423,7 +423,7 @@ module.exports = {
                     var emote_dict = {
                         height: external_emote.height,
                         width: external_emote.width,
-                        "has-hover": has_hover,
+                        "has_hover": has_hover,
                         "hover-width": external_emote["hover-width"],
                         "hover-height": external_emote["hover-height"],
                         img_animation: external_emote.img_animation,
@@ -734,7 +734,7 @@ module.exports = {
             
             // TODO: Tuck on css to the object.
             
-            if (emote['has-hover']) {
+            if (emote['has_hover']) {
                 obj["hover-background-position"] = image_url_prefix + emote.canonical_name + '_hover'
                 obj['single_hover_image_extension'] = emote.single_hover_image_extension
                 obj['hover-width'] = +emote['hover-width']
