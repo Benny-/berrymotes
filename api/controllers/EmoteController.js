@@ -203,6 +203,13 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     var css_user = emote_unsafe.css
     var tags = emote_unsafe.tags
     var src = emote_unsafe.src
+    var alt_text = emote_unsafe.alt_text
+    
+    if(alt_text)
+        alt_text = alt_text.trim()
+    else
+        alt_text = null
+    emote_dict.alt_text = alt_text
     
     canonical_name = validate_canonical_name(canonical_name)
     
