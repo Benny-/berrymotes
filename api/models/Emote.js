@@ -30,6 +30,15 @@ module.exports = {
         single_image_extension: 'STRING',
         single_hover_image_extension: 'STRING',
         src: 'STRING',
+        alt_text: 'STRING',
+        
+        created_by: {
+            model: 'User',
+        },
+        
+        updated_by: {
+            model: 'User',
+        },
         
         css: {
             type: 'JSON',
