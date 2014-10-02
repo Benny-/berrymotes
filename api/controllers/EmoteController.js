@@ -15,6 +15,7 @@ var Q = require('q')
 
 var validate_canonical_name = require('./lib/validate_canonical_name')
 var listdir = require('./lib/listdir')
+var emoticons = require('../../config/emoticons')
 
 Q.longStackSupport = true;
 
@@ -296,6 +297,11 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     if (emoticon_image) {
         base_image_promise = Q.nfcall(image_size, emoticon_image.fd)
         .then( function(dimensions) {
+            if( emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
+            {
+                throw new Error(dimensions.type + "is not a allowed file type")
+            }
+            
             emote_dict.width = dimensions.width
             emote_dict.height = dimensions.height
             emote_dict.single_image_extension = dimensions.type
@@ -320,6 +326,11 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     if (emoticon_hover_image) {
         hover_image_promise = Q.nfcall(image_size, emoticon_hover_image.fd)
         .then( function(dimensions) {
+            if( emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
+            {
+                throw new Error(dimensions.type + "is not a allowed file type")
+            }
+            
             emote_dict["has_hover"] = true
             emote_dict["hover-width"] = dimensions.width
             emote_dict["hover-height"] = dimensions.height
@@ -557,9 +568,9 @@ module.exports = {
                 var ext = path.extname(file)
                 var basename = path.basename(file, ext)
                 
-                if (file.toUpperCase().indexOf('_hover'.toUpperCase()) === -1) {
+                if (file.toLowerCase().indexOf('_hover') === -1) {
                     if ( ext !== "" &&
-                        '.bmp .gif .jpg .jpeg .png .psd .tiff .webp'.toUpperCase().indexOf(ext.toUpperCase()) !== -1) {
+                        emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(ext.toLowerCase()) !== -1) {
                         if(!canonical_name_present[req_relative_loc + basename]) {
                             canonical_name_present[req_relative_loc + basename] = true
                             canonical_names.push(req_relative_loc + basename)
@@ -570,7 +581,7 @@ module.exports = {
 
             results.dirs.forEach(function(dir) {
                 
-                if (dir.toUpperCase().indexOf('_exploded'.toUpperCase()) === -1) {
+                if (dir.toLowerCase().indexOf('_exploded') === -1) {
                     if(!combined_dir_present[req_relative_loc + dir]) {
                         combined_dir_present[req_relative_loc + dir] = true
                         combined_dirs.push(req_relative_loc + dir)
@@ -737,7 +748,7 @@ module.exports = {
     .populate('tags')
     .then(function(emotes) {
         emotes = emotes.map(function(emote) {
-            var image_url_prefix = sails.config.emoticons.image_url_prefix
+            var image_url_prefix = emoticons.image_url_prefix
             
             var obj = {
                 canonical: emote.canonical_name,
