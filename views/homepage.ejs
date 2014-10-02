@@ -26,7 +26,7 @@ setTimeout(function sunrise () {
         <h4>Emoticon management</h4>
         <ul>
             <li><a href="/emote/submit">Submit a emoticon</a></li>
-            <li><a href="/emote/ls">List all emoticons</a></li>
+            <li><a href="/emote/ls">List all emoticons in a hierarchy</a></li>
             <li><a href="/emote/view">View a emoticon</a></li>
             <li><a href="/emote/edit">Edit a emoticon</a></li>
         </ul>
@@ -37,14 +37,17 @@ setTimeout(function sunrise () {
             <li><a href="/emote/legacy_export">Export all emoticons to a json file</a></li>
         </ul>
         
-        <h4>API's</h4>
+        
+        <h4>API endpoints</h4>
+        <p>API Clients MUST send a HTTP accept header with the <code>application/json</code> mime to receive JSON.</p>
         <ul>
-            <li><a href="/emote/find">find/list emotes</a></li>
-            <li><a href="/name/find">find/list names</a></li>
-            <li><a href="/tag/find">find/list tags</a></li>
+            <li><a href="/emote/ls">/emote/ls</a></li>
+            <li><a href="/emote/find">/emote/find</a></li>
+            <li><a href="/name/find">/name/find</a></li>
+            <li><a href="/tag/find">/tag/find</a></li>
         </ul>
         
-        <p>The api is generated using <a href="http://sailsjs.org/#/documentation/reference/blueprint-api">sails blueprints</a>.</p>
+        <p>All api endpoints except for the <code>/emot/ls</code> are generated using <a href="http://sailsjs.org/#/documentation/reference/blueprint-api">sails blueprints</a>.</p>
         
     </div>
 </div>
