@@ -69,11 +69,13 @@ setTimeout(function sunrise () {
 <% } %>
             </div>
             
+<% if(emote['has_hover']) { %>
             <!-- This checkbox must be before the file upload
                 form due to the way the server handles file uploads
                 See https://github.com/balderdashy/skipper#text-parameters -->
             <div><label>Remove hover image<input type="checkbox" name="remove_hover"></label></div>
-
+<% } %>
+            
             <div>
                 <label for="emoticon_image">Emote image</label>
                 <div><img width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
@@ -83,7 +85,7 @@ setTimeout(function sunrise () {
             
             <div>
                 <label for="emoticon_hover_image">Hover image</label>
-<% if(emote['hover-width']) { %>
+<% if(emote['has_hover']) { %>
                 <div><img width="<%= emote['hover-width'] %>" height="<%= emote['hover-height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
 <% } %>
                 <input id="emoticon_hover_image" type="file" name="emoticon_hover_image" onchange="previewImage(this,[128,64,32,16,8,4],4);">

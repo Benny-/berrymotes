@@ -207,6 +207,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     var tags = emote_unsafe.tags
     var src = emote_unsafe.src
     var alt_text = emote_unsafe.alt_text
+    var remove_hover = emote_unsafe.remove_hover
     
     if(alt_text)
         alt_text = alt_text.trim()
@@ -280,6 +281,20 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
         {
             emote_dict.created_by = user.id
         }
+    }
+    
+    if(remove_hover && emoticon_hover_image) {
+        throw new Error("You are trying to remove a hover AND are trying to replace it. Do one or the other, not both.")
+    }
+    
+    if(remove_hover)
+    {
+        // TODO: Remove hover image file from disk
+        
+        emote_dict["has_hover"] = false
+        emote_dict["hover-width"] = null
+        emote_dict["hover-height"] = null
+        emote_dict.single_hover_image_extension = null
     }
     
     var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
