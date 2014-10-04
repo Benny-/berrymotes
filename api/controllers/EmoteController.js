@@ -416,7 +416,14 @@ module.exports = {
         
         upload_promise(req, 'json_emote_file')
         .then(function(files) {
-            return fsp.readFile( files[0].fd, { encoding : 'utf-8', flag: 'r' })
+            var file_path;
+            if(files.length == 0) {
+                file_path = path.join("reddit_emote_scraper", "output", "emotes_metadata.min.json")
+            }
+            else {
+                file_path = files[0].fd
+            }
+            return fsp.readFile( file_path, { encoding : 'utf-8', flag: 'r' })
         })
         .then(function(text) {
             var external_emotes = JSON.parse(text)
@@ -483,11 +490,13 @@ module.exports = {
                         })
                     .then(function(emote) {
                         if(emote) {
+                            updated++
                             sails.log.debug("Bulk import: Updating old emote: " + emote.id + " " + canonical_name )
                             // Consider re-using the 'emote' variable by passing in into the update_emote() function somehow.
                             return update_emote(canonical_name, emote_dict, names, tags)
                         }
                         else {
+                            created++
                             return create_emote(canonical_name, emote_dict, names, tags)
                             .then( function(emote) {
                                 sails.log.debug("Bulk import: Created new emote: " + emote.id + " " + canonical_name )

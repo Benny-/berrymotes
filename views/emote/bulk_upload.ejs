@@ -13,7 +13,7 @@ setTimeout(function sunrise () {
         <h3 class="container">You're looking at: <code><%= view.pathFromApp + '.' +view.ext %></code></h3>
     </div>
     <div class="main container clearfix">
-        <p><%= __("This form expects a json file from the reddit_emote_scraper program") %></p>
+        <p><%= __("This script will import emotes from reddit_emote_scraper. It imports reddit_emote_scraper/output/emotes_metadata.min.json by default. You can import a different file if you upload it here. File upload is optional and should only be used if you would like to do something special like revert to a older version.") %></p>
         <form action="/emote/bulk_upload" enctype="multipart/form-data" method="post">
             <input type='hidden' name='_csrf' value="<%= _csrf %>">
             <input type="file" name="json_emote_file"><br>
