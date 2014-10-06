@@ -18,6 +18,7 @@ The server will not be a replacement for grading emoticons for submission, nor w
 
 ## Running
 
-The subproject reddit_emote_scraper must be run at least once to fill the `reddit_emote_scraper/output` directory. Please see the subdirectory for running this script.
-
 To download all requirements for the emote server, do `npm install`. To run the server do `npm start`.
+
+You can run reddit_emote_scraper and go to /emote/bulk_upload to import those emotes into the server. This is not required. Please see the subdirectory for running reddit_emote_scraper. Only a admin on the server (Give a user role '1' using a DB interface) can perform a bulk import.
+

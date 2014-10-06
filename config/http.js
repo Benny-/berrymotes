@@ -45,8 +45,8 @@ module.exports.http = {
       'router',
       'www',
       'favicon',
+      'serve_processed_images',
       'serve_upload_images',
-      'serve_reddit_images',
       '404',
       '500'
     ],
@@ -63,12 +63,12 @@ module.exports.http = {
     // }
     
     
-    serve_upload_images: malifi(__dirname+'/../emoticons/uploaded/', {
+    serve_upload_images: malifi(__dirname+'/../emoticons/processed/', {
                                         allowed_extensions:         ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
                                         implied_static_extensions_: ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
                                     }),
     
-    serve_reddit_images: malifi(__dirname+'/../reddit_emote_scraper/output/', {
+    serve_upload_images: malifi(__dirname+'/../emoticons/uploaded/', {
                                         allowed_extensions:         ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
                                         implied_static_extensions_: ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
                                     }),

@@ -467,6 +467,14 @@ module.exports = {
                     if(external_emote["hover-width"])
                         has_hover = true
                     
+                    var single_hover_image_extension = null
+                    if(has_hover) {
+                        if(external_emote.single_hover_image_extension)
+                            single_hover_image_extension = external_emote.single_hover_image_extension
+                        else
+                            single_hover_image_extension = 'png'
+                    }
+                    
                     var emote_dict = {
                         height: external_emote.height,
                         width: external_emote.width,
@@ -475,7 +483,7 @@ module.exports = {
                         "hover-height": external_emote["hover-height"],
                         img_animation: external_emote.img_animation,
                         single_image_extension: single_image_extension,
-                        single_hover_image_extension: external_emote.single_hover_image_extension,
+                        single_hover_image_extension: single_hover_image_extension,
                         src: external_emote.sr,
                         css: css,
                     }
@@ -483,11 +491,40 @@ module.exports = {
                     return [canonical_name, emote_dict, names, tags]
                 })
                 .spread( function(canonical_name, emote_dict, names, tags) {
-                    return Emote.findOne({
+                    
+                    // First the image files are copied from the reddit_emote_scraper image
+                    // directory to a the server's image directory.
+                    // Then we update/create the emote in the database.
+                    
+                    var emoticon_image_path_original = path.join.apply(path, ["reddit_emote_scraper", "output"].concat(canonical_name.split('/')))
+                    var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
+                    
+                    return Q.nfcall(rmrf, emoticon_image_path + '.*')
+                    .then(function() {
+                        return fsp_extra.copy(  emoticon_image_path_original+'.'+emote_dict.single_image_extension,
+                                                emoticon_image_path+'.'+emote_dict.single_image_extension)
+                    })
+                    .then(function() {
+                        
+                        if(emote_dict.has_hover)
+                        {
+                           var emoticon_hover_image_path_original = path.join.apply(path, ["reddit_emote_scraper", "output"].concat((canonical_name+'_hover').split('/')))
+                           var emoticon_hover_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat((canonical_name+'_hover').split('/')))
+
+                            return Q.nfcall(rmrf, emoticon_hover_image_path + '.*')
+                            .then(function() {
+                                return fsp_extra.copy(  emoticon_hover_image_path_original+'.'+emote_dict.single_hover_image_extension,
+                                                        emoticon_hover_image_path+'.'+emote_dict.single_hover_image_extension)
+                            })
+                        }
+                    })
+                    .then(function(){
+                        return Emote.findOne({
                             where: {
                                 canonical_name: canonical_name,
                             }
                         })
+                    })
                     .then(function(emote) {
                         if(emote) {
                             updated++
@@ -563,27 +600,27 @@ module.exports = {
   // Special care should be taken ignore files not related to emoticons using
   // blacklists and/or whitelists.
   ls: function (req,res) {
-      var req_relative_loc_unsafe = req.query.loc
-      var req_relative_loc = ""
-      
-      var dirs = [
-          "emoticons/uploaded".replace("/",path.sep),
-          "reddit_emote_scraper/output".replace("/",path.sep),
-      ]
-      
-      if (req_relative_loc_unsafe) {
-          req_relative_loc = req_relative_loc_unsafe.trim().replace(".", "").replace("\\","")
-          req_relative_loc = req_relative_loc.replace(/\/+$/, ""); // Remove trailing slashes
-          req_relative_loc = req_relative_loc.replace(/^\/+/, ""); // Remove starting slashes
-          req_relative_loc = req_relative_loc + '/'
-      }
+    var req_relative_loc_unsafe = req.query.loc
+    var req_relative_loc = ""
+
+    var dirs = [
+        "emoticons/uploaded".replace("/",path.sep),
+        "emoticons/processed".replace("/",path.sep),
+    ]
+
+    if (req_relative_loc_unsafe) {
+        req_relative_loc = req_relative_loc_unsafe.trim().replace(".", "").replace("\\","")
+        req_relative_loc = req_relative_loc.replace(/\/+$/, ""); // Remove trailing slashes
+        req_relative_loc = req_relative_loc.replace(/^\/+/, ""); // Remove starting slashes
+        req_relative_loc = req_relative_loc + '/'
+    }
       
     var canonical_names = []
     var canonical_name_present = {}
 
     var combined_dirs = []
     var combined_dir_present = {}
-      
+
     Q.all( dirs.map( function(dir) {
 
         return listdir(path.join(dir, req_relative_loc.replace("/",path.sep)))
@@ -591,7 +628,7 @@ module.exports = {
             results.files.forEach(function(file) {
                 var ext = path.extname(file)
                 var basename = path.basename(file, ext)
-                
+
                 if (file.toLowerCase().indexOf('_hover') === -1) {
                     if ( ext !== "" &&
                         emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(ext.toLowerCase()) !== -1) {
@@ -604,22 +641,21 @@ module.exports = {
             })
 
             results.dirs.forEach(function(dir) {
-                
+
                 if (dir.toLowerCase().indexOf('_exploded') === -1) {
                     if(!combined_dir_present[req_relative_loc + dir]) {
                         combined_dir_present[req_relative_loc + dir] = true
                         combined_dirs.push(req_relative_loc + dir)
                     }
                 }
-                
+
             })
         }, function(err) {
             // Emoticons are stored in multiple directories.
             // 
-            // Some emoticons (for example, the ones from reddit_emote_scraper)
-            // do not exist in emoticons/uploaded. So we get ENOENT errors here
-            // if we listdir() a non-existing directory in one of the
-            // paths. This is entirely expected.
+            // Some emoticons do not exist in emoticons/processed.
+            // So we get ENOENT errors here. But they still exist in
+            // emoticons/uploaded. So we will swallow the execptions here.
             // 
             // sails.log.debug("Ignoring list directory error", err)
         })
@@ -629,7 +665,7 @@ module.exports = {
             canonical_names:canonical_names,
             dirs:combined_dirs,
         }
-        
+
         if (req.wantsJSON) {
             res.json(locals)
         } else {
