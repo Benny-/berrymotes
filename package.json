@@ -38,12 +38,13 @@
     "validator": "~3.18.1"
   },
   "devDependencies": {
+    "mocha": "1.21.4",
     "sails-generate-auth": "~0.1.6",
-    "mocha": "1.21.4"
+    "supertest": "^0.14.0"
   },
   "scripts": {
     "start": "node app.js",
-    "test": "./node_modules/.bin/mocha test/*/*/*.test.js",
+    "test": "./node_modules/.bin/mocha",
     "debug": "node debug app.js"
   },
   "main": "app.js",
