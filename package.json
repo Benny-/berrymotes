@@ -35,11 +35,15 @@
     "rimraf-glob": "~0.0.0",
     "sails": "~0.10.5",
     "sails-disk": "~0.10.3",
-    "sails-generate-auth": "~0.1.6",
     "validator": "~3.18.1"
+  },
+  "devDependencies": {
+    "sails-generate-auth": "~0.1.6",
+    "mocha": "1.21.4"
   },
   "scripts": {
     "start": "node app.js",
+    "test": "./node_modules/.bin/mocha test/*/*/*.test.js",
     "debug": "node debug app.js"
   },
   "main": "app.js",
