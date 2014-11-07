@@ -11,13 +11,14 @@ var fsp = require('fs-promise')
 var fsp_extra = require('fs-promise')
 var rmrf = require('rimraf-glob')
 var image_size = require('image-size')
-var Q = require('q')
+var Promise = require("bluebird")
+
+var image_sizeAsync = Promise.promisify(image_size)
+var rmrfAsync = Promise.promisify(rmrf)
 
 var validate_canonical_name = require('./lib/validate_canonical_name')
 var listdir = require('./lib/listdir')
 var emoticons = require('../../config/emoticons')
-
-Q.longStackSupport = true;
 
 /*
 // This function converts something like this:
@@ -79,7 +80,7 @@ var create_emote = function(canonical_name, emote_dict, names, tags) {
             return promise;
         })
         
-        return Q.allSettled( [].concat(names_promises, tags_promises) ) // I don't really care if setting the tags or names succeed.
+        return Promise.settle( [].concat(names_promises, tags_promises) ) // I don't really care if setting the tags or names succeed.
         .then(function(results) {return emote} )
     })
 }
@@ -190,7 +191,7 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
             }
         })
         
-        return Q.allSettled( [].concat(names_promises, tags_promises) ) // I don't really care if setting the tags or names succeed.
+        return Promise.settle( [].concat(names_promises, tags_promises) ) // I don't really care if setting the tags or names succeed.
         .then(function(results) {return emote.save()} )                        // So we don't check the resulting promises here.
     })
 }
@@ -306,11 +307,11 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     
     if(!emoticon_image && !update)
     {
-        return Q.reject(new Error("A emoticon must have a base image"))
+        return Promise.reject(new Error("A emoticon must have a base image"))
     }
     
     if (emoticon_image) {
-        base_image_promise = Q.nfcall(image_size, emoticon_image.fd)
+        base_image_promise = image_sizeAsync(emoticon_image.fd)
         .then( function(dimensions) {
             if( emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
             {
@@ -326,7 +327,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
             var promise = Q()
             if(update) {
                 promise = promise.then(function() {
-                    Q.nfcall(rmrf, emoticon_image_path + '.*')
+                    return rmrfAsync(emoticon_image_path + '.*')
                 })
             }
             return promise.then(function() {
@@ -339,7 +340,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     }
     
     if (emoticon_hover_image) {
-        hover_image_promise = Q.nfcall(image_size, emoticon_hover_image.fd)
+        hover_image_promise = image_sizeAsync(emoticon_hover_image.fd)
         .then( function(dimensions) {
             if( emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
             {
@@ -356,7 +357,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
             var promise = Q()
             if(update) {
                 promise = promise.then(function() {
-                    Q.nfcall(rmrf, emoticon_hover_image_path + '.*')
+                    return rmrfAsync(emoticon_hover_image_path + '.*')
                 })
             }
             return promise.then(function() {
@@ -368,7 +369,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
         hover_image_promise = Q("Hover image file unchanged");
     }
     
-    file_promise = Q.all( [base_image_promise, hover_image_promise] )
+    file_promise = Promise.all( [base_image_promise, hover_image_promise] )
     
     return file_promise.then( function() {
         var database_promise = undefined
@@ -395,17 +396,16 @@ var wrapped_submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover
 }
 
 var upload_promise = function(req, field_name) {
-    var deferred = Q.defer()
     
-    req.file(field_name).upload(function (err, files) {
-        if (err) {
-            deferred.reject(new Error(err))
-        } else {
-            deferred.resolve(files)
-        }
-    })
-    
-    return deferred.promise
+    return new Promise(function (resolve, reject) {
+        req.file(field_name).upload(function (err, files) {
+            if (err) {
+                reject(new Error(err))
+            } else {
+                resolve(files)
+            }
+        })
+    });
 }
 
 module.exports = {
@@ -441,7 +441,7 @@ module.exports = {
         .then(function(external_emotes) {
             sails.log.debug("Bulk import: Processing " + external_emotes.length + " emotes")
             
-            var result = Q()
+            var result = Promise.resolve()
             var created = 0
             var updated = 0
             external_emotes.map( function(external_emote) {
@@ -499,7 +499,7 @@ module.exports = {
                     var emoticon_image_path_original = path.join.apply(path, ["reddit_emote_scraper", "output"].concat(canonical_name.split('/')))
                     var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
                     
-                    return Q.nfcall(rmrf, emoticon_image_path + '.*')
+                    return rmrfAsync(emoticon_image_path + '.*')
                     .then(function() {
                         return fsp_extra.copy(  emoticon_image_path_original+'.'+emote_dict.single_image_extension,
                                                 emoticon_image_path+'.'+emote_dict.single_image_extension)
@@ -511,7 +511,7 @@ module.exports = {
                            var emoticon_hover_image_path_original = path.join.apply(path, ["reddit_emote_scraper", "output"].concat((canonical_name+'_hover').split('/')))
                            var emoticon_hover_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat((canonical_name+'_hover').split('/')))
 
-                            return Q.nfcall(rmrf, emoticon_hover_image_path + '.*')
+                            return rmrfAsync(emoticon_hover_image_path + '.*')
                             .then(function() {
                                 return fsp_extra.copy(  emoticon_hover_image_path_original+'.'+emote_dict.single_hover_image_extension,
                                                         emoticon_hover_image_path+'.'+emote_dict.single_hover_image_extension)
@@ -567,7 +567,7 @@ module.exports = {
   submit: function (req,res) {
     if(req.is('multipart/form-data')) {
         
-        Q.all([
+        Promise.all([
             upload_promise(req, 'emoticon_image'),
             upload_promise(req, 'emoticon_hover_image'),
         ])
@@ -621,7 +621,7 @@ module.exports = {
     var combined_dirs = []
     var combined_dir_present = {}
 
-    Q.all( dirs.map( function(dir) {
+    Promise.all( dirs.map( function(dir) {
 
         return listdir(path.join(dir, req_relative_loc.replace("/",path.sep)))
         .then(function(results) {
@@ -723,7 +723,7 @@ module.exports = {
   
   edit: function (req,res) {
     if(req.is('multipart/form-data')) {
-        Q.all([
+        Promise.all([
             upload_promise(req, 'emoticon_image'),
             upload_promise(req, 'emoticon_hover_image'),
         ])

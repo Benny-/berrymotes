@@ -1,7 +1,7 @@
 var path = require('path')
 
 var fsp = require('fs-promise')
-var Q = require('q')
+var Promise = require("bluebird")
 
 module.exports = function(dir) {
   var results = {
@@ -12,7 +12,7 @@ module.exports = function(dir) {
   return fsp.readdir(dir)
   .then(function(files) {
       
-      return Q.all(files.map(function(file) {
+      return Promise.all(files.map(function(file) {
           return fsp.stat(path.join(dir, file))
           .then(function(stat) {
               stat.file = file
