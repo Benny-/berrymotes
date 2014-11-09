@@ -1,10 +1,9 @@
-requests
-dateutils
-workerpool
-tinycss
-pillow
-pypuzzle
-sh
-lxml
-PyExecJS
-
+requests >= 2.4.3
+dateutils >= 0.6.6
+workerpool >= 0.9.2
+tinycss >= 0.3
+pillow >= 2.6.1
+pypuzzle >= 1.1
+sh >= 1.09
+lxml >= 3.4.0
+PyExecJS >= 1.0.4
