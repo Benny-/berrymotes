@@ -384,7 +384,7 @@ class BMScraper():
                 old_emote = old_emote_map[canonical_name(new_emote)]
                 equal = self._emote_image_source_equal(old_emote, new_emote)
                 if not equal:
-                    logger.info("Emote: " + canonical_name(old_emote) + " might have changed.")
+                    logger.info("Emote: " + canonical_name(old_emote) + "'s spritemap has been updated. Emote marked as updated since comparing code is missing. TODO: Visually compare the old and new emote to be sure they are changed.")
                     # Someone might have added a image to a spritemap,
                     # this will cause the background-image to change
                     # making the old and new emote unequal, even if they look exactly the same.
