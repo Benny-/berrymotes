@@ -27,7 +27,7 @@ import os
 from os import path, utime
 from .downloadjob import DownloadJob
 from .filenameutils import get_file_path
-from .Emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name, canonical_name, get_explode_directory
+from .emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name, canonical_name, get_explode_directory
 from dateutil import parser
 from PIL import Image
 import pypuzzle
@@ -313,7 +313,7 @@ class BMScraper():
         A emote using the same image source (While still being visually different using CSS)
         will still be incorrectly merged.
         
-        The _extract_single_image() function in Emote.py normalizes some of the values.
+        The _extract_single_image() function in emote.py normalizes some of the values.
         Care should be taken so both inputs are normalized (or ensure both are NOT normalized).
         """
         if (a.get('background-image')           ==  b.get('background-image')           and
