@@ -18,7 +18,6 @@ var rmrfAsync = Promise.promisify(rmrf)
 
 var validate_canonical_name = require('./lib/validate_canonical_name')
 var listdir = require('./lib/listdir')
-var emoticons = require('../../config/emoticons')
 
 /*
 // This function converts something like this:
@@ -313,7 +312,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     if (emoticon_image) {
         base_image_promise = image_sizeAsync(emoticon_image.fd)
         .then( function(dimensions) {
-            if( emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
+            if( sails.config.emote_server.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
             {
                 throw new Error(dimensions.type + "is not a allowed file type")
             }
@@ -342,7 +341,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     if (emoticon_hover_image) {
         hover_image_promise = image_sizeAsync(emoticon_hover_image.fd)
         .then( function(dimensions) {
-            if( emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
+            if( sails.config.emote_server.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
             {
                 throw new Error(dimensions.type + "is not a allowed file type")
             }
@@ -631,7 +630,7 @@ module.exports = {
 
                 if (file.toLowerCase().indexOf('_hover') === -1) {
                     if ( ext !== "" &&
-                        emoticons.allowed_extensions.join(' ').toLowerCase().indexOf(ext.toLowerCase()) !== -1) {
+                        sails.config.emote_server.allowed_extensions.join(' ').toLowerCase().indexOf(ext.toLowerCase()) !== -1) {
                         if(!canonical_name_present[req_relative_loc + basename]) {
                             canonical_name_present[req_relative_loc + basename] = true
                             canonical_names.push(req_relative_loc + basename)
@@ -808,7 +807,7 @@ module.exports = {
     .populate('tags')
     .then(function(emotes) {
         emotes = emotes.map(function(emote) {
-            var image_url_prefix = emoticons.image_url_prefix
+            var image_url_prefix = sails.config.emote_server.image_url_prefix
             
             var obj = {
                 canonical: emote.canonical_name,
