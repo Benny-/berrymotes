@@ -150,7 +150,26 @@ def extract_single_image(emote, spritemap_img, autocrop=True):
     return _extract_single_image(emote, spritemap_img, 'background-position', 'width', 'height', autocrop)
 
 def has_hover(emote):
-    return 'hover-background-position' in emote or 'hover-background-image' in emote
+    
+    if "has_hover" in emote:
+        return emote['has_hover']
+
+    has_hover = 'hover-background-position' in emote or 'hover-background-image' in emote
+    emote['has_hover'] = has_hover
+
+    weird_hover = False
+    if not has_hover and 'hover-height' in emote:
+        weird_hover = True
+        del emote['hover-height']
+
+    if not has_hover and 'hover-width' in emote:
+        weird_hover = True
+        del emote['hover-width']
+
+    if weird_hover:
+        logger.warn("Emote: " + canonical_name(emote) + " has hover dimension(s) but no hover-background-position or hover-background-image. Assuming this is NOT a hover emote.")
+
+    return has_hover
 
 def extract_single_hover_image(emote, spritemap_img, autocrop=False):
     return _extract_single_image(emote, spritemap_img, 'hover-background-position', 'hover-width', 'hover-height', autocrop)
