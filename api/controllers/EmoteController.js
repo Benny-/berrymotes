@@ -323,7 +323,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
             return dimensions.type
         })
         .then( function(type) {
-            var promise = Q()
+            var promise = Promise.resolve()
             if(update) {
                 promise = promise.then(function() {
                     return rmrfAsync(emoticon_image_path + '.*')
@@ -335,7 +335,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
         })
     }
     else {
-        base_image_promise = Q("Base image file unchanged");
+        base_image_promise = Promise.resolve("Base image file unchanged");
     }
     
     if (emoticon_hover_image) {
@@ -353,7 +353,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
             return dimensions.type
         })
         .then( function(type) {
-            var promise = Q()
+            var promise = Promise.resolve()
             if(update) {
                 promise = promise.then(function() {
                     return rmrfAsync(emoticon_hover_image_path + '.*')
@@ -365,7 +365,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
         })
     }
     else {
-        hover_image_promise = Q("Hover image file unchanged");
+        hover_image_promise = Promise.resolve("Hover image file unchanged");
     }
     
     file_promise = Promise.all( [base_image_promise, hover_image_promise] )
@@ -388,7 +388,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
 // But we like to handle them in promise rejection handler instead of try/catch
 // So we do this!
 var wrapped_submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, update, user) {
-    return Q()
+    return Promise.resolve()
     .then(function () {
         return submit_emote(emote_unsafe, emoticon_image, emoticon_hover_image, update, user)
     })
