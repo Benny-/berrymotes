@@ -13,9 +13,6 @@ setTimeout(function sunrise () {
         <h3 class="container">You're looking at: <code><%= view.pathFromApp + '.' +view.ext %></code></h3>
     </div>
     <div class="main container clearfix">
-<% for(var i=0; i<errors.length; i++) {%>
-   <div><%= errors[i] %></div>
-<% } %>
       <form role="form" action="/auth/local" method="post">
         <input type='hidden' name='_csrf' value="<%= _csrf %>">
         <input type="text" name="identifier" placeholder="Username or Email">

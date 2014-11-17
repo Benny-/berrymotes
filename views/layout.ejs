@@ -43,6 +43,13 @@
       <% } %>
     </h2>
     
+    <!-- Error flash messages -->
+    <% if (typeof errors !== 'undefined') { %>
+      <% for(var i=0; i<errors.length; i++) {%>
+         <div><%= __(errors[i]) %></div>
+      <% } %>
+    <% } %>
+    
     <%- body %>
     
     <!--
