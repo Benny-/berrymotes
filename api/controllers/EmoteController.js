@@ -126,9 +126,9 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
             new_names_dict[value] = true
         })
         
-        var old_names = array_name_picker(emote.names)
         var old_names_dict = {}
-        old_names.forEach(function(value, index, arr) {
+        emote.names.forEach(function(old_name, index, arr) {
+            var value = old_name.name
             old_names_dict[value] = true
             
             if (!new_names_dict[value]) {
@@ -161,13 +161,13 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
             new_tags_dict[value] = true
         })
         
-        var old_tags = array_name_picker(emote.tags)
         var old_tags_dict = {}
-        old_tags.forEach(function(value, index, arr) {
+        emote.tags.forEach(function(old_tag, index, arr) {
+            var value = old_tag.name
             old_tags_dict[value] = true
             
             if (!new_tags_dict[value]) {
-                emote.tags.remove(value)
+                emote.tags.remove(old_tag.id)
             }
         })
         var tags_promises = tags.map( function(tag) {
