@@ -443,7 +443,7 @@ module.exports = {
             var result = Promise.resolve()
             var created = 0
             var updated = 0
-            external_emotes.map( function(external_emote) {
+            external_emotes.forEach( function(external_emote) {
                 // We process the emotes in some order so the database adapter does not get overloaded.
                 // Processing everything at the same time causes disruption in other services this web server provides.
                 result = result.then( function() {
@@ -801,6 +801,7 @@ module.exports = {
     }
   },
   
+  // The Legacy format is used by berrymotes.
   legacy_export: function (req,res) {
     Emote.find()
     .populate('names')
