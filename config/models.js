@@ -28,5 +28,5 @@ module.exports.models = {
   *                                                                          *
   ***************************************************************************/
   migrate: 'alter', // Options: 'safe' 'alter' 'drop'
-
+  dynamicFinders: false, // Disabled for performance reasons.
 };
