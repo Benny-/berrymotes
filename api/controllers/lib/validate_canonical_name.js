@@ -3,9 +3,14 @@ var contains = function(str, substr) {
     return str.indexOf(substr) != -1;
 }
 
+var slashes = new RegExp("/+", "g");
+
 module.exports = function(unsafe_canonical_name) {
     unsafe_canonical_name = unsafe_canonical_name.trim()
-
+    
+    // Replace all double or more slashes by single slashes.
+    unsafe_canonical_name = unsafe_canonical_name.replace(slashes, '/')
+    
     if (contains(unsafe_canonical_name, "."))
         throw new Error("canonical_name may not contain dots")
     

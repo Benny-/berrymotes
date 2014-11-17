@@ -201,7 +201,7 @@ var update_emote = function(canonical_name, emote_dict, names, tags) {
 var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, update, user) {
     var emote_dict = {}
     
-    var canonical_name = emote_unsafe.canonical_name
+    var canonical_name = validate_canonical_name(emote_unsafe.canonical_name)
     var names = emote_unsafe.names
     var css_user = emote_unsafe.css
     var tags = emote_unsafe.tags
@@ -214,8 +214,6 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     else
         alt_text = null
     emote_dict.alt_text = alt_text
-    
-    canonical_name = validate_canonical_name(canonical_name)
     
     if(src)
         src = src.trim()
