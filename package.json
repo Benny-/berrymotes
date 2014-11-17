@@ -9,7 +9,7 @@
     "animote"
   ],
   "dependencies": {
-    "bcrypt": "~0.8.0",
+    "bcryptjs": "~2.1.0",
     "bluebird": "^2.3.5",
     "ejs": "~0.8.4",
     "fs-extra": "~0.11.0",
@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "mocha": "1.21.4",
-    "sails-generate-auth": "~0.1.6",
+    "sails-generate-auth": "~0.2.0",
     "supertest": "^0.14.0"
   },
   "scripts": {

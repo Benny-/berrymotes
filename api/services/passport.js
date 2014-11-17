@@ -63,12 +63,21 @@ passport.protocols = require('./protocols');
  * @param {Function} next
  */
 passport.connect = function (req, query, profile, next) {
-  var strategies = sails.config.passport
-    , config     = strategies[profile.provider]
-    , user       = {};
+  var user = {}
+    , provider;
 
-  // Set the authentication provider.
+  // Get the authentication provider from the query.
   query.provider = req.param('provider');
+
+  // Use profile.provider or fallback to the query.provider if it is undefined
+  // as is the case for OpenID, for example
+  provider = profile.provider || query.provider;
+
+  // If the provider cannot be identified we cannot match it to a passport so
+  // throw an error and let whoever's next in line take care of it.
+  if (!provider){
+    return next(new Error('No authentication provider was identified.'));
+  }
 
   // If the profile object contains a list of emails, grab the first one and
   // add it to the user.
@@ -88,10 +97,12 @@ passport.connect = function (req, query, profile, next) {
   }
 
   Passport.findOne({
-    provider   : profile.provider
+    provider   : provider
   , identifier : query.identifier.toString()
   }, function (err, passport) {
-    if (err) return next(err);
+    if (err) {
+      return next(err);
+    }
 
     if (!req.user) {
       // Scenario: A new user is attempting to sign up using a third-party
@@ -100,18 +111,25 @@ passport.connect = function (req, query, profile, next) {
       if (!passport) {
         User.create(user, function (err, user) {
           if (err) {
-            if(err.code === "E_VALIDATION"){
-              req.flash('error', err.invalidAttributes.email ? 
-                'Error.Passport.Email.Exists' : 'Error.Passport.User.Exists');
+            if (err.code === 'E_VALIDATION') {
+              if (err.invalidAttributes.email) {
+                req.flash('error', 'Error.Passport.Email.Exists');
+              }
+              else {
+                req.flash('error', 'Error.Passport.User.Exists');
+              }
             }
+
             return next(err);
           }
-          
+
           query.user = user.id;
 
           Passport.create(query, function (err, passport) {
             // If a passport wasn't created, bail out
-            if (err) return next(err);
+            if (err) {
+              return next(err);
+            }
 
             next(err, user);
           });
@@ -128,7 +146,9 @@ passport.connect = function (req, query, profile, next) {
 
         // Save any updates to the Passport before moving on
         passport.save(function (err, passport) {
-          if (err) return next(err);
+          if (err) {
+            return next(err);
+          }
 
           // Fetch the user associated with the Passport
           User.findOne(passport.user.id, next);
@@ -143,7 +163,9 @@ passport.connect = function (req, query, profile, next) {
 
         Passport.create(query, function (err, passport) {
           // If a passport wasn't created, bail out
-          if (err) return next(err);
+          if (err) {
+            return next(err);
+          }
 
           next(err, req.user);
         });
@@ -211,16 +233,22 @@ passport.callback = function (req, res, next) {
     else if (action === 'connect' && req.user) {
       this.protocols.local.connect(req, res, next);
     }
+    else if (action === 'disconnect' && req.user) {
+      this.protocols.local.disconnect(req, res, next);
+    }
     else {
       next(new Error('Invalid action'));
     }
   } else {
-
-    // The provider will redirect the user to this URL after approval. Finish
-    // the authentication process by attempting to obtain an access token. If
-    // access was granted, the user will be logged in. Otherwise, authentication
-    // has failed.
-    this.authenticate(provider, next)(req, res, req.next);
+    if (action === 'disconnect' && req.user) {
+      this.disconnect(req, res, next) ;
+    } else {
+      // The provider will redirect the user to this URL after approval. Finish
+      // the authentication process by attempting to obtain an access token. If
+      // access was granted, the user will be logged in. Otherwise, authentication
+      // has failed.
+      this.authenticate(provider, next)(req, res, req.next);
+    }
   }
 };
 
@@ -234,6 +262,7 @@ passport.callback = function (req, res, next) {
     github: {
       name: 'GitHub',
       protocol: 'oauth2',
+      strategy: require('passport-github').Strategy
       scope: [ 'user', 'gist' ]
       options: {
         clientID: 'CLIENT_ID',
@@ -272,9 +301,9 @@ passport.loadStrategies = function () {
       }
 
       Strategy = strategies[key].strategy;
-      
+
       var baseUrl = sails.getBaseurl();
-      
+
       switch (protocol) {
         case 'oauth':
         case 'oauth2':
@@ -295,6 +324,34 @@ passport.loadStrategies = function () {
 
       self.use(new Strategy(options, self.protocols[protocol]));
     }
+  });
+};
+
+/**
+ * Disconnect a passport from a user
+ *
+ * @param  {Object} req
+ * @param  {Object} res
+ */
+passport.disconnect = function (req, res, next) {
+  var user     = req.user
+    , provider = req.param('provider');
+
+  Passport.findOne({
+      provider : provider,
+      user     : user.id
+    }, function (err, passport) {
+      if (err) {
+        return next(err);
+      }
+
+      Passport.destroy(passport.id, function (error) {
+        if (err) {
+          return next(err);
+        }
+
+        next(null, user);
+      });
   });
 };
 
