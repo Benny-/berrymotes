@@ -407,6 +407,29 @@ var upload_promise = function(req, field_name) {
     });
 }
 
+// id can me a canonical name or a database specific numeric id.
+var queryEmoteById = function(id) {
+    var query;
+    if (isNaN(+id)) {
+        // id is a canonical name.
+        query = Emote.findOne({
+            where: {
+                canonical_name: id.trim(),
+            }
+        })
+    }
+    else {
+        // id is a numeric id.
+        id = Math.floor(+id)
+        query = Emote.findOne({
+            where: {
+                id: id,
+            }
+        })
+    }
+    return query;
+}
+
 module.exports = {
 
   bulk_upload: function(req, res) {
@@ -683,29 +706,10 @@ module.exports = {
             return
         }
         
-        var promise = undefined
-        if (isNaN(+id)) {
-            // id is a canonical name.
-            promise = Emote.findOne({
-                where: {
-                    canonical_name: id.trim(),
-                }
-            })
-        }
-        else {
-            // id is a numeric id.
-            id = Math.floor(+id)
-            promise = Emote.findOne({
-                where: {
-                    id: id,
-                }
-            })
-        }
-        promise = promise
+        queryEmoteById(id)
         .populate('names')
         .populate('tags')
-        
-        promise.then( function(emote) {
+        .then( function(emote) {
             if (emote === undefined)
                 throw new Error("Could not find a emote with id: "+id)
             return emote
@@ -763,29 +767,10 @@ module.exports = {
             return
         }
         
-        var promise = undefined
-        if (isNaN(+id)) {
-            // id is a canonical name.
-            promise = Emote.findOne({
-                where: {
-                    canonical_name: id.trim(),
-                }
-            })
-        }
-        else {
-            // id is a numeric id.
-            id = Math.floor(+id)
-            promise = Emote.findOne({
-                where: {
-                    id: id,
-                }
-            })
-        }
-        promise = promise
+        queryEmoteById(id)
         .populate('names')
         .populate('tags')
-        
-        promise.then( function(emote) {
+        .then( function(emote) {
             if (!emote)
                 throw new Error("Could not find a emote with id: "+id)
             return emote
