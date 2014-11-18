@@ -32,8 +32,9 @@ module.exports = {
         // A user may only edit/submit in these directories.
         emote_subdirs: {
             type: 'JSON',
-            defaultsTo: sails.config.emote_server.default_whitelist_emote_subdirs_str,
+            defaultsTo: sails.config.emote_server.default_whitelist_emote_subdirs,
             notNull: true,
+            array: true,
         },
         passports : {
             collection: 'Passport',

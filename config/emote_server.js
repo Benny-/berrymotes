@@ -11,5 +11,3 @@ module.exports = {
         default_whitelist_emote_subdirs: ['mls/volatile/'],
     },
 }
-
-module.exports.emote_server.default_whitelist_emote_subdirs_str = JSON.stringify(module.exports.emote_server.default_whitelist_emote_subdirs)
