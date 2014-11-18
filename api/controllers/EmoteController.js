@@ -828,46 +828,5 @@ module.exports = {
         .done()
     }
   },
-  
-  // The Legacy format is used by berrymotes.
-  legacy_export: function (req,res) {
-    Emote.find()
-    .populate('names')
-    .populate('tags')
-    .then(function(emotes) {
-        emotes = emotes.map(function(emote) {
-            var image_url_prefix = sails.config.emote_server.image_url_prefix
-            
-            var obj = {
-                canonical: emote.canonical_name,
-                "background-image": image_url_prefix + emote.canonical_name,
-                width: +emote.width,
-                height: +emote.height,
-                img_animation: emote.img_animation,
-                single_image_extension: emote.single_image_extension,
-                sr: emote.src,
-                names: array_name_picker(emote.names),
-                tags: array_name_picker(emote.tags),
-            }
-            
-            // TODO: Tuck on css to the object.
-            
-            if (emote['has_hover']) {
-                obj["hover-background-position"] = image_url_prefix + emote.canonical_name + '_hover'
-                obj['single_hover_image_extension'] = emote.single_hover_image_extension
-                obj['hover-width'] = +emote['hover-width']
-                obj['hover-height'] = +emote['hover-height']
-            }
-            
-            return obj
-        })
-        res.json(emotes)
-    })
-    .catch(function(err) {
-        res.status(500)
-        res.view('emote/error', {error:err} )
-    })
-    .done()
-  },
 }
 

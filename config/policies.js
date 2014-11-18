@@ -65,7 +65,6 @@ module.exports.policies = {
     'view':             ['passport'],
     'edit':             ['passport', 'authenticated'],
     'bulk_upload':      ['passport', 'admin'],
-    'legacy_export':    ['passport', 'admin'],
   },
   
   TagController: {
