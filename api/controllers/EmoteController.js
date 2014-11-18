@@ -428,6 +428,20 @@ var queryEmoteById = function(id) {
     return query;
 }
 
+var allowed_to_edit = function(user, canonical_name) {
+    var allowed = false
+    
+    var startsWith = function(str, substr) {
+        return str.indexOf(substr) == 0;
+    }
+    
+    user.emote_subdirs.forEach(function(dir){
+        if(startsWith(canonical_name, dir))
+            allowed = true
+    })
+    return allowed
+}
+            
 module.exports = {
 
   bulk_upload: function(req, res) {
@@ -587,6 +601,21 @@ module.exports = {
   submit: function (req,res) {
     if(req.is('multipart/form-data')) {
         
+        try {
+            var canonical_name = validate_canonical_name(req.body.canonical_name)
+            if (!allowed_to_edit(req.user, canonical_name))
+            {
+                res.status(403);
+                res.view('emote/error', {error:"You do not have permission to submit emotes in this directory, check your privilege"} )
+                return
+            }
+        }
+        catch(err) {
+            res.status(400);
+            res.view('emote/error', {error:err} );
+            return
+        }
+        
         Promise.all([
             upload_promise(req, 'emoticon_image'),
             upload_promise(req, 'emoticon_hover_image'),
@@ -724,6 +753,22 @@ module.exports = {
   
   edit: function (req,res) {
     if(req.is('multipart/form-data')) {
+        
+        try {
+            var canonical_name = validate_canonical_name(req.body.canonical_name)
+            if (!allowed_to_edit(req.user, canonical_name))
+            {
+                res.status(403);
+                res.view('emote/error', {error:"You do not have permission to edit this emote"} )
+                return
+            }
+        }
+        catch(err) {
+            res.status(400);
+            res.view('emote/error', {error:err} );
+            return
+        }
+        
         Promise.all([
             upload_promise(req, 'emoticon_image'),
             upload_promise(req, 'emoticon_hover_image'),
@@ -748,7 +793,7 @@ module.exports = {
             .populate('tags')
         })
         .then( function(emote) {
-            res.view( {emote:emote} )
+            res.view( {emote:emote, allowed_to_edit:true} )
         })
         .catch( function(err) {
             res.serverError(err);
@@ -761,7 +806,7 @@ module.exports = {
         
         if (!id) {
             res.status(400);
-            res.view('emote/error', {error:"You must supply a valid id. A canonical name or a numeric id."} );
+            res.view('emote/error', {error:"You must supply a valid id. A canonical name or a numeric id."} )
             return
         }
         
@@ -774,7 +819,7 @@ module.exports = {
             return emote
         })
         .then(function(emote) {
-            res.view( {emote:emote} )
+            res.view( {emote:emote, allowed_to_edit:allowed_to_edit(req.user, emote.canonical_name)} )
         })
         .catch(function(err) {
             res.status(400)

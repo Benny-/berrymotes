@@ -8,5 +8,8 @@ module.exports = {
         // a dimension.
         // https://github.com/netroy/image-size is used to extract dimensions.
         allowed_extensions: ['.gif', '.jpg', '.jpeg', '.png', '.tiff', '.webp', '.svg'],
+        default_whitelist_emote_subdirs: ['mls/volatile/'],
     },
 }
+
+module.exports.emote_server.default_whitelist_emote_subdirs_str = JSON.stringify(module.exports.emote_server.default_whitelist_emote_subdirs)

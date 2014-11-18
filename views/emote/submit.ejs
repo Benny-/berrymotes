@@ -19,12 +19,30 @@ setTimeout(function sunrise () {
     </div>
     <div class="main container clearfix">
         <p><%= __("Fill out this form to submit a new emoticon:") %></p>
+
+        <% if (user.emote_subdirs.length >= 1) { %>
+            <ul>
+            <% user.emote_subdirs.forEach(function(subdir){ %>
+                <li>You can sumbit/edit emotes in <strong><%= subdir %></strong></li>
+            <% }) %>
+            </ul>
+        <% } else { %>
+            <h2>You are not allowed to edit/create emotes in any directories. Please ask a admin for permission.</h2>
+        <% } %>
+
+        <p>You are only required to give your emoticon a unique canonical path name and a image. All other fields are optional.</p>
+
         <form action="/emote/submit" enctype="multipart/form-data" method="post">
             <input type='hidden' name='_csrf' value="<%= _csrf %>">
             
             <div>
                 <label for="canonical_name">Canonical path*</label>
-                <input id="canonical_name" type="text" name="canonical_name" required placeholder="bt/yourname/sorrysocks">
+
+                <% if (user.emote_subdirs.length >= 1) { %>
+                    <input id="canonical_name" type="text" name="canonical_name" required placeholder="bt/yourname/sorrysocks" value="<%= user.emote_subdirs[0] %>">
+                <% } else { %>
+                    <input id="canonical_name" type="text" name="canonical_name" required placeholder="bt/yourname/sorrysocks">
+                <% } %>
             </div>
             
             <div>

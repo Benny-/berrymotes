@@ -19,6 +19,11 @@ setTimeout(function sunrise () {
     </div>
     <div class="main container clearfix">
         <p><%= __("You can change a emoticon here") %></p>
+
+        <% if (!allowed_to_edit) { %>
+            <h2>You are not allowed to edit this emote. Please contact a admin for permission.</h2>
+        <% } %>
+
         <form action="/emote/edit?id=<%= emote.canonical_name %>" enctype="multipart/form-data" method="post">
             <input type='hidden' name='_csrf' value="<%= _csrf %>">
             
