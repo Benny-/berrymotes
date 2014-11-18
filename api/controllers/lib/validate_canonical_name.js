@@ -27,6 +27,9 @@ module.exports = function(unsafe_canonical_name) {
     if (unsafe_canonical_name.indexOf("/") == 0)
         throw new Error("canonical_name may not start with a forward slash")
     
+    if (unsafe_canonical_name === "")
+        throw new Error("canonical_name may not be a empty string")
+    
     var safe_canonical_name = unsafe_canonical_name
     return safe_canonical_name
 }
