@@ -26,7 +26,7 @@
     "grunt-contrib-watch": "~0.5.3",
     "grunt-sails-linker": "~0.9.5",
     "grunt-sync": "~0.0.4",
-    "image-size": "~0.3.3",
+    "image-size": "~0.3.5",
     "include-all": "~0.1.3",
     "malifi": "git://github.com/Benny-/malifi.git#master",
     "passport": "~0.2.1",
