@@ -1,0 +1,46 @@
+
+<link type="text/css" href='http://sailsjs.org/styles/fonts.css' rel='stylesheet'/>
+
+<script type="text/javascript">
+setTimeout(function sunrise () {
+    document.getElementsByClassName('header')[0].style.backgroundColor = '#118798';
+}, 0);
+</script>
+
+<div class="default-page">
+    <div class="header">
+        <h1 id="main-title" class="container"><%= __('API description') %></h1>
+        <h3 class="container">You're looking at: <code><%= view.pathFromApp + '.' +view.ext %></code></h3>
+    </div>
+    <div class="main container clearfix">
+    
+        <h3>API endpoints</h3>
+        
+        <p>Clients MUST send a HTTP accept header with the <code>application/json</code> mime to receive JSON.</p>
+        <ul>
+            <li><a href="/emote/ls">/emote/ls</a></li>
+            <li><a href="/emote">/emote</a></li>
+            <li><a href="/name">/name</a></li>
+            <li><a href="/tag">/tag</a></li>
+        </ul>
+        
+        <p>All api endpoints except for the <code>/emote/ls</code> are generated using <a href="http://sailsjs.org/#/documentation/reference/blueprint-api">sails blueprints</a>. You can use <a href="http://sailsjs.org/#/documentation/concepts/ORM/Querylanguage.html">sails query language</a> on them. Examples:</p>
+        
+        <ul>
+            <li><a href="/emote?populate=[names,tags]"><code>/emote?populate=[names,tags]</code></a></li>
+            <li><a href='/emote?skip=10&amp;limit=5'><code>/emote?skip=10&amp;limit=5</code></a></li>
+            <li><a href='/tag/?where={"name":{"contains":"princess"}}'><code>/tag/?where={"name":{"contains":"princess"}}</code></a></li>
+            <li><a href='/emote?populate=[names,tags,created_by,updated_by]&amp;where={"canonical_name":{"startsWith":"r/mlpounge"}}&amp;skip=0&amp;limit=1&amp;sort=updatedAt ASC'><code>/emote?populate=[names,tags,created_by,updated_by]&amp;where={"canonical_name":{"startsWith":"r/mlpounge"}}&amp;skip=0&amp;limit=1&amp;sort=updatedAt ASC</code></a></li>
+        </ul>
+        
+        <p>It is not possible to do "deep" queries like <a href='/emote?where={"tags.name":{"contains":"princess"}}'><code>/emote?where={"tags.name":{"contains":"princess"}}</code></a>
+
+        <p>The recommended way to evaluate a name to a emote involves two queries:<p>
+
+        <ul>
+            <li><a href='/name/?where={"name":"ajnope"}'><code>/name/?where={"name":"ajnope"}</code></a></li>
+            <li><a href='/emote/?where={"id":1}'><code>/emote/?where={"id":1}</code></a></li>
+        </ul>
+
+    </div>
+</div>
