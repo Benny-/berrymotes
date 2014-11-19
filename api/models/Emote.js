@@ -16,19 +16,22 @@ module.exports = {
             required: true,
         },
         
-        // Can be 'png', ''
+        // Can be 'png', 'gif', 'svg', ect..
         single_image_extension: {
             type: 'STRING',
             notNull: true,
             required: true,
         },
         // True if the base image is a animation.
+        // This attribute is not reliable
         img_animation: {
             type: 'BOOLEAN',
             defaultsTo: false,
             notNull: true,
         },
         // The width/width for the base image in pixels.
+        // Special case if single_image_extension == 'svg':
+        // The width/height will be null if the svg does not have a pixel size.
         width: {
             type: 'INTEGER',
             required: true,
@@ -46,12 +49,15 @@ module.exports = {
         },
         single_hover_image_extension: 'STRING',
         // True if the hover image is a animation.
+        // This attribute is not reliable
         hover_animation: {
             type: 'BOOLEAN',
             defaultsTo: false,
             notNull: true,
         },
         // The height/width for the optional hover image in pixels.
+        // Special case if single_hover_image_extension == 'svg':
+        // The width/height will be null if the svg does not have a pixel size.
         hover_width: {
             type: 'INTEGER',
         },

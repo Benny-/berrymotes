@@ -60,13 +60,21 @@ setTimeout(function sunrise () {
 
         <div>
             <label for="emoticon_image">Emote image</label>
-            <div><img width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
+<% if(emote.width == null || emote.height == null) { %>
+            <div><img id="emoticon_image" src="/<%= emote.canonical_name %>"></div>
+<% } else { %>
+            <div><img id="emoticon_image" width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
+<% } %>
         </div>
 
 <% if(emote['has_hover']) { %>
         <div>
             <label for="emoticon_hover_image">Hover image</label>
-            <div><img width="<%= emote['hover_width'] %>" height="<%= emote['hover_height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
+    <% if(emote.hover_width == null || emote.hover_height == null) { %>
+            <div><img id="emoticon_hover_image" src="/<%= emote.canonical_name %>_hover"></div>
+    <% } else { %>
+            <div><img id="emoticon_hover_image" width="<%= emote['hover_width'] %>" height="<%= emote['hover_height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
+    <% } %>
         </div>
 <% } %>
         

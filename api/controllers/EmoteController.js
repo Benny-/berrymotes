@@ -315,8 +315,12 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
                 throw new Error(dimensions.type + "is not a allowed file type")
             }
             
-            emote_dict.width = dimensions.width
-            emote_dict.height = dimensions.height
+            emote_dict.width = +dimensions.width
+            if(isNaN(emote_dict.width))
+                emote_dict.width = null
+            emote_dict.height = +dimensions.height
+            if(isNaN(emote_dict.height))
+                emote_dict.height = null
             emote_dict.single_image_extension = dimensions.type
             return dimensions.type
         })
@@ -345,8 +349,12 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
             }
             
             emote_dict["has_hover"] = true
-            emote_dict["hover_width"] = dimensions.width
-            emote_dict["hover_height"] = dimensions.height
+            emote_dict["hover_width"] = +dimensions.width
+            if(isNaN(emote_dict["hover_width"]))
+                emote_dict["hover_width"] = null
+            emote_dict["hover_height"] = +dimensions.height
+            if(isNaN(emote_dict["hover_height"]))
+                emote_dict["hover_height"] = null
             emote_dict.single_hover_image_extension = dimensions.type
             return dimensions.type
         })
