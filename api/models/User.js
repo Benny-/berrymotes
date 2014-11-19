@@ -23,7 +23,7 @@ module.exports = {
             required: true,
         },
         role: {
-            type: 'INT',
+            type: 'INTEGER',
             defaultsTo: 0, // Zero is a newly registered user. '1' is site admin.
             notNull: true,
             required: true,

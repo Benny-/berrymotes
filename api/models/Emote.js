@@ -30,13 +30,11 @@ module.exports = {
         },
         // The width/width for the base image in pixels.
         width: {
-            type: 'INT',
-            notNull: true,
+            type: 'INTEGER',
             required: true,
         },
         height: {
-            type: 'INT',
-            notNull: true,
+            type: 'INTEGER',
             required: true,
         },
         
@@ -55,10 +53,10 @@ module.exports = {
         },
         // The height/width for the optional hover image in pixels.
         hover_width: {
-            type: 'INT',
+            type: 'INTEGER',
         },
         hover_height: {
-            type: 'INT',
+            type: 'INTEGER',
         },
         
         // The origin of this emote. Is always a hyperlink.
