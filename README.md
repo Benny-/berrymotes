@@ -24,15 +24,19 @@ The server however will not be a replacement for grading emoticons nor will this
 
 ## Running the service
 
+### Dependencies
+
+[NodeJS and npm](https://nodejs.org/download/) are required.
+
 ### Running in dev mode
 
-To download all requirements for the emote server (no root privileges required):
+Download all requirements for the emote server (no root privileges required):
 
 ```bash
 npm install
 ```
 
-To run the server do:
+Run the server:
 
 ```bash
 npm start
