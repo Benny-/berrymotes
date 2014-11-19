@@ -16,6 +16,19 @@ module.exports = {
             required: true,
         },
         
+        // Can be 'png', ''
+        single_image_extension: {
+            type: 'STRING',
+            notNull: true,
+            required: true,
+        },
+        // True if the base image is a animation.
+        img_animation: {
+            type: 'BOOLEAN',
+            defaultsTo: false,
+            notNull: true,
+        },
+        // The width/width for the base image in pixels.
         width: {
             type: 'INT',
             notNull: true,
@@ -26,29 +39,29 @@ module.exports = {
             notNull: true,
             required: true,
         },
-        "has_hover": {
+        
+        // All hover attributes must be ignored if has_hover is set to false.
+        has_hover: {
             type: 'BOOLEAN',
             defaultsTo: false,
             notNull: true,
         },
-        "hover-width": 'INT',
-        "hover-height": 'INT',
-        img_animation: {
-            type: 'BOOLEAN',
-            defaultsTo: false,
-            notNull: true,
-        },
+        single_hover_image_extension: 'STRING',
+        // True if the hover image is a animation.
         hover_animation: {
             type: 'BOOLEAN',
             defaultsTo: false,
             notNull: true,
         },
-        single_image_extension: {
-            type: 'STRING',
-            notNull: true,
-            required: true,
+        // The height/width for the optional hover image in pixels.
+        hover_width: {
+            type: 'INT',
         },
-        single_hover_image_extension: 'STRING',
+        hover_height: {
+            type: 'INT',
+        },
+        
+        // The origin of this emote. Is always a hyperlink.
         src: 'STRING',
         alt_text: 'STRING',
         

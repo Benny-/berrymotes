@@ -63,10 +63,10 @@ setTimeout(function sunrise () {
             <div><img width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
         </div>
 
-<% if(emote['hover-width']) { %>
+<% if(emote['has_hover']) { %>
         <div>
             <label for="emoticon_hover_image">Hover image</label>
-            <div><img width="<%= emote['hover-width'] %>" height="<%= emote['hover-height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
+            <div><img width="<%= emote['hover_width'] %>" height="<%= emote['hover_height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
         </div>
 <% } %>
         

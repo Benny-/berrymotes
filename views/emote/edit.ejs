@@ -91,7 +91,7 @@ setTimeout(function sunrise () {
             <div>
                 <label for="emoticon_hover_image">Hover image</label>
 <% if(emote['has_hover']) { %>
-                <div><img width="<%= emote['hover-width'] %>" height="<%= emote['hover-height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
+                <div><img width="<%= emote['hover_width'] %>" height="<%= emote['hover_height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
 <% } %>
                 <input id="emoticon_hover_image" type="file" name="emoticon_hover_image" onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>

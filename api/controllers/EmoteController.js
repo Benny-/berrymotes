@@ -290,8 +290,8 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
         // TODO: Remove hover image file from disk
         
         emote_dict["has_hover"] = false
-        emote_dict["hover-width"] = null
-        emote_dict["hover-height"] = null
+        emote_dict["hover_width"] = null
+        emote_dict["hover_height"] = null
         emote_dict.single_hover_image_extension = null
     }
     
@@ -345,8 +345,8 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
             }
             
             emote_dict["has_hover"] = true
-            emote_dict["hover-width"] = dimensions.width
-            emote_dict["hover-height"] = dimensions.height
+            emote_dict["hover_width"] = dimensions.width
+            emote_dict["hover_height"] = dimensions.height
             emote_dict.single_hover_image_extension = dimensions.type
             return dimensions.type
         })
@@ -498,7 +498,7 @@ module.exports = {
                         single_image_extension = external_emote.single_image_extension
                     
                     var has_hover = false
-                    if(external_emote["hover-width"])
+                    if(external_emote["hover_width"])
                         has_hover = true
                     
                     var single_hover_image_extension = null
@@ -512,13 +512,13 @@ module.exports = {
                     var emote_dict = {
                         height: external_emote.height,
                         width: external_emote.width,
-                        "has_hover": has_hover,
-                        "hover-width": external_emote["hover-width"],
-                        "hover-height": external_emote["hover-height"],
+                        has_hover: has_hover,
+                        hover_width: external_emote["hover-width"],
+                        hover_height: external_emote["hover-height"],
                         img_animation: external_emote.img_animation,
                         single_image_extension: single_image_extension,
                         single_hover_image_extension: single_hover_image_extension,
-                        src: external_emote.sr,
+                        src: 'https://www.reddit.com/r/'+external_emote.sr+'/',
                         css: css,
                     }
                     
