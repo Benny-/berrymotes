@@ -287,7 +287,9 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     
     if(remove_hover)
     {
-        // TODO: Remove hover image file from disk
+        // The hover image does not need to be removed.
+        // It may actually cause trouble for clients who still try to fetch
+        // the old hover image.
         
         emote_dict["has_hover"] = false
         emote_dict["hover_width"] = null

@@ -116,7 +116,7 @@ ProxyPassReverse / http://localhost:1337/
 
 Importing emotes from reddit is entirely optional.
 
-Before you can import them into the emote server, you must generate them. To do this run reddit_emote_scraper at least once. See the sub-directory for instructions.
+Before you can import them into the emote server, you must generate them. To do this run reddit_emote_scraper at least once. See [the sub-directory](reddit_emote_scraper) for instructions.
 
 Give yourself admin privileges (set role from '0' to '1' in the `user` table) using your favorite database interface. And browse on the emote server to `/emote/bulk_upload`.
 
