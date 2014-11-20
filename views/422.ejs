@@ -15,18 +15,19 @@ setTimeout(function sunrise () {
     <div class="main container clearfix">
     
         <h1>
-            404, page not found.
+            422, The request was well-formed but was unable to be followed due to semantic errors.
         </h1>
-        <h2>
-            <% if (typeof data!== 'undefined') { %>
-                <%= data %>
-            <% } else { %>
-                The page you were trying to reach doesn't exist.
-            <% } %>
-        </h2>
-        <p class="help">
-            <a href="https://en.wikipedia.org/wiki/HTTP_404">Why</a> might this be happening?
-        </p>
+        <% if (typeof data !== 'undefined') { %>
+            <pre class="error">
+                    <code><%- data %></code>
+            </pre>
+        <% } else { %>
+            <p class="error">
+                We could not give precise information on what was wrong with your request.
+            </p>
+        <% } %>
+
+        <p>Please try again with different input.</p>
         
     </div>
 </div>
