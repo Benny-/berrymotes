@@ -66,7 +66,10 @@ module.exports = {
         },
         
         // The origin of this emote. Is always a hyperlink.
-        src: 'STRING',
+        src: {
+            type:  'STRING',
+            url: {},
+        },
         alt_text: 'STRING',
         
         created_by: {
