@@ -508,7 +508,7 @@ module.exports = {
                         single_image_extension = external_emote.single_image_extension
                     
                     var has_hover = false
-                    if(external_emote["hover_width"])
+                    if(external_emote["has_hover"])
                         has_hover = true
                     
                     var single_hover_image_extension = null
