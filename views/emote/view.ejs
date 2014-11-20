@@ -63,7 +63,7 @@ setTimeout(function sunrise () {
 <% if(emote.width == null || emote.height == null) { %>
             <div><img id="emoticon_image" src="/<%= emote.canonical_name %>"></div>
 <% } else { %>
-            <div><img id="emoticon_image" width="<%= emote.width %>" height="<%= emote.height %>" src="/<%= emote.canonical_name %>"></div>
+            <div><img id="emoticon_image" width="<%= emote.width %>" height="<%= emote.height %>" src="<%= sails.config.emote_server.image_url_prefix + emote.canonical_name %>"></div>
 <% } %>
         </div>
 
@@ -71,9 +71,9 @@ setTimeout(function sunrise () {
         <div>
             <label for="emoticon_hover_image">Hover image</label>
     <% if(emote.hover_width == null || emote.hover_height == null) { %>
-            <div><img id="emoticon_hover_image" src="/<%= emote.canonical_name %>_hover"></div>
+            <div><img id="emoticon_hover_image" src="<%= sails.config.emote_server.image_url_prefix + emote.canonical_name %>_hover"></div>
     <% } else { %>
-            <div><img id="emoticon_hover_image" width="<%= emote['hover_width'] %>" height="<%= emote['hover_height'] %>" src="/<%= emote.canonical_name %>_hover"></div>
+            <div><img id="emoticon_hover_image" width="<%= emote['hover_width'] %>" height="<%= emote['hover_height'] %>" src="<%= sails.config.emote_server.image_url_prefix + emote.canonical_name %>_hover"></div>
     <% } %>
         </div>
 <% } %>
