@@ -15,11 +15,12 @@ setTimeout(function sunrise () {
     <div class="main container clearfix">
       <form role="form" action="/auth/local/register" method="post">
         <input type='hidden' name='_csrf' value="<%= _csrf %>">
-        <input type="text" name="username" placeholder="Username">
-        <input type="text" name="email" placeholder="Email">
-        <input type="password" name="password" placeholder="Password">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="text" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Sign up</button>
       </form>
+      <p>Password must be 8 characters or more.</p>
     </div>
 </div>
 
