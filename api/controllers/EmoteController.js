@@ -297,7 +297,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
         emote_dict.single_hover_image_extension = null
     }
     
-    var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
+    var emoticon_image_path = path.join.apply(path, ['serve_emote_resources', 'emote', 'img', 'uploaded'].concat(canonical_name.split('/')))
     var emoticon_hover_image_path = emoticon_image_path + '_hover'
     
     var file_promise = undefined
@@ -309,10 +309,12 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
         return Promise.reject(new Error("A emoticon must have a base image"))
     }
     
+    var allowed_extensions_str = sails.config.emote_server.allowed_extensions.join(' ').toLowerCase()
+    
     if (emoticon_image) {
         base_image_promise = image_sizeAsync(emoticon_image.fd)
         .then( function(dimensions) {
-            if( sails.config.emote_server.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
+            if( allowed_extensions_str.indexOf(dimensions.type.toLowerCase()) == -1 )
             {
                 throw new Error(dimensions.type + "is not a allowed file type")
             }
@@ -345,7 +347,7 @@ var submit_emote = function(emote_unsafe, emoticon_image, emoticon_hover_image, 
     if (emoticon_hover_image) {
         hover_image_promise = image_sizeAsync(emoticon_hover_image.fd)
         .then( function(dimensions) {
-            if( sails.config.emote_server.allowed_extensions.join(' ').toLowerCase().indexOf(dimensions.type.toLowerCase()) == -1 )
+            if( allowed_extensions_str.indexOf(dimensions.type.toLowerCase()) == -1 )
             {
                 throw new Error(dimensions.type + "is not a allowed file type")
             }
@@ -541,7 +543,7 @@ module.exports = {
                     // Then we update/create the emote in the database.
                     
                     var emoticon_image_path_original = path.join.apply(path, ["reddit_emote_scraper", "output"].concat(canonical_name.split('/')))
-                    var emoticon_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat(canonical_name.split('/')))
+                    var emoticon_image_path = path.join.apply(path, ['serve_emote_resources', 'emote', 'img', 'uploaded'].concat(canonical_name.split('/')))
                     
                     return rmrfAsync(emoticon_image_path + '.*')
                     .then(function() {
@@ -553,7 +555,7 @@ module.exports = {
                         if(emote_dict.has_hover)
                         {
                            var emoticon_hover_image_path_original = path.join.apply(path, ["reddit_emote_scraper", "output"].concat((canonical_name+'_hover').split('/')))
-                           var emoticon_hover_image_path = path.join.apply(path, ["emoticons", "uploaded"].concat((canonical_name+'_hover').split('/')))
+                           var emoticon_hover_image_path = path.join.apply(path, ['serve_emote_resources', 'emote', 'img', 'uploaded'].concat((canonical_name+'_hover').split('/')))
 
                             return rmrfAsync(emoticon_hover_image_path + '.*')
                             .then(function() {
@@ -663,8 +665,7 @@ module.exports = {
     var req_relative_loc = ""
 
     var dirs = [
-        "emoticons/uploaded".replace("/",path.sep),
-        "emoticons/processed".replace("/",path.sep),
+        "serve_emote_resources/emote/img/uploaded".replace("/",path.sep),
     ]
 
     if (req_relative_loc_unsafe) {
@@ -680,6 +681,8 @@ module.exports = {
     var combined_dirs = []
     var combined_dir_present = {}
 
+    var allowed_extensions_str = sails.config.emote_server.allowed_extensions.join(' ').toLowerCase()
+
     Promise.all( dirs.map( function(dir) {
 
         return listdir(path.join(dir, req_relative_loc.replace("/",path.sep)))
@@ -688,9 +691,12 @@ module.exports = {
                 var ext = path.extname(file)
                 var basename = path.basename(file, ext)
 
+                // ".extension" -> "extension". This line removes the dot.
+                ext = ext.substr(1)
+                
                 if (file.toLowerCase().indexOf('_hover') === -1) {
                     if ( ext !== "" &&
-                        sails.config.emote_server.allowed_extensions.join(' ').toLowerCase().indexOf(ext.toLowerCase()) !== -1) {
+                        allowed_extensions_str.indexOf(ext.toLowerCase()) !== -1) {
                         if(!canonical_name_present[req_relative_loc + basename]) {
                             canonical_name_present[req_relative_loc + basename] = true
                             canonical_names.push(req_relative_loc + basename)
@@ -709,14 +715,6 @@ module.exports = {
                 }
 
             })
-        }, function(err) {
-            // Emoticons are stored in multiple directories.
-            // 
-            // Some emoticons do not exist in emoticons/processed.
-            // So we get ENOENT errors here. But they still exist in
-            // emoticons/uploaded. So we will swallow the execptions here.
-            // 
-            // sails.log.debug("Ignoring list directory error", err)
         })
     }))
     .then(function() {

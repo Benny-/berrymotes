@@ -9,7 +9,8 @@
  * http://sailsjs.org/#/documentation/reference/sails.config/sails.config.http.html
  */
 
-malifi = require('malifi')
+var serveStatic = require('serve-static')
+var emote_server = require('./emote_server').emote_server
 
 module.exports.http = {
 
@@ -45,10 +46,9 @@ module.exports.http = {
       'router',
       'www',
       'favicon',
-      'serve_processed_images',
-      'serve_upload_images',
+      'serve_emote_resources',
       '404',
-      '500'
+      '500',
     ],
 
   /****************************************************************************
@@ -63,15 +63,12 @@ module.exports.http = {
     // }
     
     
-    serve_upload_images: malifi(__dirname+'/../emoticons/processed/', {
-                                        allowed_extensions:         ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
-                                        implied_static_extensions_: ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
-                                    }),
-    
-    serve_upload_images: malifi(__dirname+'/../emoticons/uploaded/', {
-                                        allowed_extensions:         ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
-                                        implied_static_extensions_: ['gif','jpg','jpeg','ico','png','tif','tiff','bmp','svg','webp','webm','mp4','mp3','flac','wav'],
-                                    }),
+    serve_emote_resources: serveStatic(__dirname+'/../serve_emote_resources/',
+            {
+                index: false,
+                extensions:emote_server.allowed_extensions,
+                dotfiles: 'deny',
+            }),
 
   /***************************************************************************
   *                                                                          *
