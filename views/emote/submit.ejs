@@ -39,9 +39,9 @@ setTimeout(function sunrise () {
                 <label for="canonical_name">Canonical path*</label>
 
                 <% if (user.emote_subdirs.length >= 1) { %>
-                    <input id="canonical_name" type="text" name="canonical_name" required placeholder="bt/yourname/sorrysocks" value="<%= user.emote_subdirs[0] %>">
+                    <input id="canonical_name" type="text" name="canonical_name" required autofocus placeholder="bt/yourname/sorrysocks" value="<%= user.emote_subdirs[0] %>">
                 <% } else { %>
-                    <input id="canonical_name" type="text" name="canonical_name" required placeholder="bt/yourname/sorrysocks">
+                    <input id="canonical_name" type="text" name="canonical_name" required autofocus= placeholder="bt/yourname/sorrysocks">
                 <% } %>
             </div>
             
