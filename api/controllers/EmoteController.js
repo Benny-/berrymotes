@@ -664,10 +664,6 @@ module.exports = {
     var req_relative_loc_unsafe = req.query.loc
     var req_relative_loc = ""
 
-    var dirs = [
-        "serve_emote_resources/emote/img/uploaded".replace("/",path.sep),
-    ]
-
     if (req_relative_loc_unsafe) {
         req_relative_loc = req_relative_loc_unsafe.trim().replace(".", "").replace("\\","")
         req_relative_loc = req_relative_loc.replace(/\/+$/, ""); // Remove trailing slashes
@@ -676,51 +672,53 @@ module.exports = {
     }
       
     var canonical_names = []
-    var canonical_name_present = {}
-
-    var combined_dirs = []
-    var combined_dir_present = {}
+    var dirs = []
 
     var allowed_extensions_str = sails.config.emote_server.allowed_extensions.join(' ').toLowerCase()
 
-    Promise.all( dirs.map( function(dir) {
+    listdir(path.join("serve_emote_resources/emote/img/uploaded".replace("/",path.sep), req_relative_loc.replace("/",path.sep)))
+    .then(function(results) {
+        results.files.forEach(function(file) {
+            var ext = path.extname(file)
+            var basename = path.basename(file, ext)
 
-        return listdir(path.join(dir, req_relative_loc.replace("/",path.sep)))
-        .then(function(results) {
-            results.files.forEach(function(file) {
-                var ext = path.extname(file)
-                var basename = path.basename(file, ext)
+            // ".extension" -> "extension". This line removes the dot.
+            ext = ext.substr(1)
 
-                // ".extension" -> "extension". This line removes the dot.
-                ext = ext.substr(1)
-                
-                if (file.toLowerCase().indexOf('_hover') === -1) {
-                    if ( ext !== "" &&
-                        allowed_extensions_str.indexOf(ext.toLowerCase()) !== -1) {
-                        if(!canonical_name_present[req_relative_loc + basename]) {
-                            canonical_name_present[req_relative_loc + basename] = true
-                            canonical_names.push(req_relative_loc + basename)
-                        }
-                    }
+            if (file.toLowerCase().indexOf('_hover') === -1) {
+                if ( ext !== "" &&
+                    allowed_extensions_str.indexOf(ext.toLowerCase()) !== -1) {
+                    canonical_names.push(req_relative_loc + basename)
                 }
-            })
-
-            results.dirs.forEach(function(dir) {
-
-                if (dir.toLowerCase().indexOf('_exploded') === -1) {
-                    if(!combined_dir_present[req_relative_loc + dir]) {
-                        combined_dir_present[req_relative_loc + dir] = true
-                        combined_dirs.push(req_relative_loc + dir)
-                    }
-                }
-
-            })
+            }
         })
-    }))
+
+        results.dirs.forEach(function(dir) {
+
+            if (dir.toLowerCase().indexOf('_exploded') === -1) {
+                dirs.push(req_relative_loc + dir)
+            }
+
+        })
+    })
     .then(function() {
         var locals = {
             canonical_names:canonical_names,
-            dirs:combined_dirs,
+            dirs:dirs,
+        }
+
+        if (req.wantsJSON) {
+            res.json(locals)
+        } else {
+            res.view(locals)
+        }
+    })
+    .catch(function(err) {
+        // This exception block will be executed if the directory does not exist.
+        res.status(404)
+        var locals = {
+            canonical_names:[],
+            dirs:[],
         }
 
         if (req.wantsJSON) {
