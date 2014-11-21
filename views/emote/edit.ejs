@@ -88,7 +88,7 @@ setTimeout(function sunrise () {
 <% } else { %>
                 <div><img width="<%= emote.width %>" height="<%= emote.height %>" src="<%= sails.config.emote_server.image_url_prefix + emote.canonical_name + '.' + emote.single_image_extension %>"></div>
 <% } %>
-                <input id="emoticon_image" type="file" name="emoticon_image" onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <input id="emoticon_image" type="file" accept="image/*" name="emoticon_image" onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>
             </div>
             
@@ -101,7 +101,7 @@ setTimeout(function sunrise () {
                 <div><img width="<%= emote['hover_width'] %>" height="<%= emote['hover_height'] %>" src="<%= sails.config.emote_server.image_url_prefix + emote.canonical_name + '_hover.' + emote.single_hover_image_extension %>"></div>
     <% } %>
 <% } %>
-                <input id="emoticon_hover_image" type="file" name="emoticon_hover_image" onchange="previewImage(this,[128,64,32,16,8,4],4);">
+                <input id="emoticon_hover_image" type="file" accept="image/*" name="emoticon_hover_image" onchange="previewImage(this,[128,64,32,16,8,4],4);">
                 <div class="imagePreview"></div>
             </div>
             
