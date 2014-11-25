@@ -32,7 +32,9 @@ module.exports = {
         // A user may only edit/submit in these directories.
         emote_subdirs: {
             type: 'JSON',
-            defaultsTo: sails.config.emote_server.default_whitelist_emote_subdirs,
+            // Sails is not defined during "sails.js www".
+            // So the existence of sails must be checked.
+            defaultsTo: (typeof sails !== 'undefined') ? sails.config.emote_server.default_whitelist_emote_subdirs : [],
             notNull: true,
             array: true,
         },
