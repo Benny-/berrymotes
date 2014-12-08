@@ -448,7 +448,7 @@ class BMScraper():
                 else:
                     base = name
                 
-                emote['tags'] = [ tag_id2name[tag_int] for tag_int in tags_ints]
+                emote['tags'] = [ tag_id2name[tag_int][1:] for tag_int in tags_ints]
                 
             return expanded_emotes
         
