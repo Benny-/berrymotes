@@ -38,6 +38,7 @@ from lxml import etree
 import execjs
 import tempfile
 import pickle
+import urlparse
 
 import logging
 
@@ -479,7 +480,7 @@ class BMScraper():
                 file_path = get_file_path(image_url, rootdir=self.cache_dir)
                 if not path.isfile(file_path):
                     workpool.put(DownloadJob(self._requests,
-                                             image_url,
+                                             urlparse.urljoin('https://s3.amazonaws.com/',image_url),
                                              retry=5,
                                              rate_limit_lock=self.rate_limit_lock,
                                              callback=self._callback_download_image,
