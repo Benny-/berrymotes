@@ -17,6 +17,12 @@ module.exports = function(unsafe_canonical_name) {
     if (contains(unsafe_canonical_name, "\\"))
         throw new Error("canonical_name may not contain backward slashes")
     
+    // This restriction is here because of the way we store and serve images.
+    // The question mark causes some parts of the url to be parsed as a query string.
+    // This restriction can be removed if we serve them differently.
+    if (contains(unsafe_canonical_name, "?"))
+        throw new Error("canonical_name may not contain a question mark")
+    
     if (contains(unsafe_canonical_name, "\0"))
         throw new Error("canonical_name may not contain a zero byte value")
     
