@@ -47,10 +47,10 @@ var AuthController = {
     });
 
     // Render the `auth/login.ext` view
-    res.view({
+    res.ok({
       providers : providers
     , errors    : req.flash('error')
-    });
+    })
   },
 
   /**
@@ -88,7 +88,7 @@ var AuthController = {
    * @param {Object} res
    */
   register: function (req, res) {
-    res.view({
+    res.ok({
       errors: req.flash('error')
     });
   },

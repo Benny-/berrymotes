@@ -7,11 +7,11 @@
 
 module.exports = {
 	homepage: function (req,res) {
-	    res.view('homepage')
+	    res.ok()
 	},
 	
 	api: function (req,res) {
-	    res.view('api')
+	    res.ok()
 	},
 };
 

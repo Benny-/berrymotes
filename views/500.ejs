@@ -17,15 +17,24 @@ setTimeout(function sunrise () {
         <h1>
             500, Internal Server Error
         </h1>
-        <% if (typeof data !== 'undefined') { %>
+
+        <h2>
+            <% if (typeof reason !== 'undefined') { %>
+                <%= reason %>
+            <% } else { %>
+                No details are available about this exception.
+            <% } %>
+        </h2>
+
+        <% if (typeof stack !== 'undefined') { %>
+            <p>Stacktrace:</p>
             <pre class="error">
-                    <code><%- data %></code>
+                <code><%- stack %></code>
             </pre>
-        <% } else { %>
-            <p class="error">
-               Consider <a href="https://github.com/Benny-/emoticon_server/issues">reporting</a> this error.
-            </p>
         <% } %>
-        
+
+        <p>
+           Consider <a href="https://github.com/Benny-/emoticon_server/issues">reporting</a> this error.
+        </p>
     </div>
 </div>

@@ -15,19 +15,27 @@ setTimeout(function sunrise () {
     <div class="main container clearfix">
     
         <h1>
-            422, The request was well-formed but was unable to be followed due to semantic errors.
+            422, Unprocessable Entity
         </h1>
-        <% if (typeof data !== 'undefined') { %>
+
+        <h2>
+            <% if (typeof reason !== 'undefined') { %>
+                <%= reason %>
+            <% } else { %>
+                No details are available about this exception.
+            <% } %>
+        </h2>
+
+        <% if (typeof stack !== 'undefined') { %>
+            <p>Stacktrace:</p>
             <pre class="error">
-                    <code><%- data %></code>
+                <code><%- stack %></code>
             </pre>
-        <% } else { %>
-            <p class="error">
-                We could not give precise information on what was wrong with your request.
-            </p>
         <% } %>
 
-        <p>Please try again with different input.</p>
-        
+        <p>
+            Please try again with different input. <a href="https://github.com/Benny-/emoticon_server/issues">Report</a> this error if it is not your fault.
+        </p>
+
     </div>
 </div>

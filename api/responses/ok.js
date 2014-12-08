@@ -3,15 +3,16 @@
  *
  * Usage:
  * return res.ok();
- * return res.ok(data);
- * return res.ok(data, 'auth/login');
+ * return res.ok(locals);
+ * return res.ok(locals, 'auth/login');
  *
- * @param  {Object} data
+ * @param  {Object} locals
+ *          - The local variables for the view
  * @param  {String|Object} options
  *          - pass string to render specified view
  */
 
-module.exports = function sendOK (data, options) {
+module.exports = function sendOK (locals, options) {
 
   // Get access to `req`, `res`, & `sails`
   var req = this.req;
@@ -25,7 +26,7 @@ module.exports = function sendOK (data, options) {
 
   // If appropriate, serve data as JSON(P)
   if (req.wantsJSON) {
-    return res.jsonx(data);
+    return res.jsonx(locals);
   }
 
   // If second argument is a string, we take that to mean it refers to a view.
@@ -36,13 +37,13 @@ module.exports = function sendOK (data, options) {
   // Otherwise try to guess an appropriate view, or if that doesn't
   // work, just send JSON.
   if (options.view) {
-    return res.view(options.view, { data: data });
+    return res.view(options.view, locals);
   }
 
   // If no second argument provided, try to serve the implied view,
   // but fall back to sending JSON(P) if no view can be inferred.
-  else return res.guessView({ data: data }, function couldNotGuessView () {
-    return res.jsonx(data);
+  else return res.guessView(locals, function couldNotGuessView () {
+    return res.jsonx(locals);
   });
 
 };

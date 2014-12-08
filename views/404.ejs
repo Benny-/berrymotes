@@ -15,17 +15,26 @@ setTimeout(function sunrise () {
     <div class="main container clearfix">
     
         <h1>
-            404, page not found.
+            404, Page not found
         </h1>
+
         <h2>
-            <% if (typeof data!== 'undefined') { %>
-                <%= data %>
+            <% if (typeof reason !== 'undefined') { %>
+                <%= reason %>
             <% } else { %>
                 The page you were trying to reach doesn't exist.
             <% } %>
         </h2>
-        <p class="help">
-            <a href="https://en.wikipedia.org/wiki/HTTP_404">Why</a> might this be happening?
+
+        <% if (typeof stack !== 'undefined') { %>
+            <p>Stacktrace:</p>
+            <pre class="error">
+                <code><%- stack %></code>
+            </pre>
+        <% } %>
+
+        <p>
+           Consider <a href="https://github.com/Benny-/emoticon_server/issues">reporting</a> this error.
         </p>
         
     </div>

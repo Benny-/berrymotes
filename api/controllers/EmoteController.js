@@ -476,13 +476,12 @@ module.exports = {
             return external_emotes
         })
         .then(function(external_emotes) {
-            res.json({
+            res.ok({
                     msg:"Processing " + external_emotes.length + " emotes in background"
             })
             return external_emotes
         }, function(err) {
-            res.status(500)
-            res.view('emote/error', {error:err} )
+            res.serverError(err)
         })
         .then(function(external_emotes) {
             sails.log.debug("Bulk import: Processing " + external_emotes.length + " emotes")
@@ -606,7 +605,7 @@ module.exports = {
     }
     else
     {
-      res.view();
+      res.ok();
     }
   },
   
@@ -617,14 +616,12 @@ module.exports = {
             var canonical_name = validate_canonical_name(req.body.canonical_name)
             if (!allowed_to_edit(req.user, canonical_name))
             {
-                res.status(403);
-                res.view('emote/error', {error:"You do not have permission to submit emotes in this directory, check your privilege"} )
+                res.forbidden("You do not have permission to submit emotes in this directory, check your privilege")
                 return
             }
         }
         catch(err) {
-            res.status(400);
-            res.view('emote/error', {error:err} );
+            res.invalidRequest(err);
             return
         }
         
@@ -652,7 +649,7 @@ module.exports = {
     }
     else
     {
-      res.view();
+      res.ok();
     }
   },
   
@@ -702,30 +699,17 @@ module.exports = {
         })
     })
     .then(function() {
-        var locals = {
+        res.ok({
             canonical_names:canonical_names,
             dirs:dirs,
-        }
-
-        if (req.wantsJSON) {
-            res.json(locals)
-        } else {
-            res.view(locals)
-        }
+        })
     })
     .catch(function(err) {
         // This exception block will be executed if the directory does not exist.
-        res.status(404)
-        var locals = {
+        res.notFound({
             canonical_names:[],
             dirs:[],
-        }
-
-        if (req.wantsJSON) {
-            res.json(locals)
-        } else {
-            res.view(locals)
-        }
+        }, {view:"emote/ls"})
     })
     .done()
   },
@@ -734,8 +718,7 @@ module.exports = {
         var id = req.query.id
         
         if (!id) {
-            res.status(400);
-            res.view('emote/error', {error:"You must supply a valid id. A canonical name or a numeric id."} );
+            res.invalidRequest("You must supply a valid id. A canonical name or a numeric id.");
             return
         }
         
@@ -748,11 +731,10 @@ module.exports = {
             return emote
         })
         .then(function(emote) {
-            res.view( {emote:emote} )
+            res.ok( {emote:emote} )
         })
         .catch(function(err) {
-            res.status(400)
-            res.view('emote/error', {error:err} )
+            res.serverError(err)
         })
         .done()
   },
@@ -764,14 +746,12 @@ module.exports = {
             var canonical_name = validate_canonical_name(req.body.canonical_name)
             if (!allowed_to_edit(req.user, canonical_name))
             {
-                res.status(403);
-                res.view('emote/error', {error:"You do not have permission to edit this emote"} )
+                res.forbidden("You do not have permission to edit this emote")
                 return
             }
         }
         catch(err) {
-            res.status(400);
-            res.view('emote/error', {error:err} );
+            res.invalidRequest(err);
             return
         }
         
@@ -799,10 +779,10 @@ module.exports = {
             .populate('tags')
         })
         .then( function(emote) {
-            res.view( {emote:emote, allowed_to_edit:true} )
+            res.ok( {emote:emote, allowed_to_edit:true} )
         })
         .catch( function(err) {
-            res.serverError(err);
+            res.serverError(err)
         })
         .done()
     }
@@ -811,8 +791,7 @@ module.exports = {
         var id = req.query.id
         
         if (!id) {
-            res.status(400);
-            res.view('emote/error', {error:"You must supply a valid id. A canonical name or a numeric id."} )
+            res.invalidRequest("You must supply a valid id. A canonical name or a numeric id.");
             return
         }
         
@@ -825,11 +804,10 @@ module.exports = {
             return emote
         })
         .then(function(emote) {
-            res.view( {emote:emote, allowed_to_edit:allowed_to_edit(req.user, emote.canonical_name)} )
+            res.ok( {emote:emote, allowed_to_edit:allowed_to_edit(req.user, emote.canonical_name)} )
         })
         .catch(function(err) {
-            res.status(400)
-            res.view('emote/error', {error:err} )
+            res.serverError(err)
         })
         .done()
     }
