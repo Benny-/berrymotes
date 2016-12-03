@@ -44,6 +44,7 @@ logger.info("Finished scrape in {}.".format(time.time() - start))
 emotes = scraper.export_emotes()
 
 FILENAME = path.join('output', 'emotes_metadata')
+
 with open(FILENAME + '.min.js', 'w') as f:
     f.write("var emotes_metadata = ")
     json.dump(emotes, fp=f, separators=(',', ':'), sort_keys=True)
@@ -59,13 +60,4 @@ with open(FILENAME + '.min.json', 'w') as f:
 
 with open(FILENAME + '.json', 'w') as f:
     json.dump(emotes, fp=f, separators=(',', ':'), sort_keys=True, indent=2)
-
-with open(FILENAME + '.pickle_v0', "w") as f:
-    pickle.dump(emotes, file=f, protocol=0)
-
-with open(FILENAME + '.pickle_v1', "wb") as f:
-    pickle.dump(emotes, file=f, protocol=1)
-
-with open(FILENAME + '.pickle_v2', "wb") as f:
-    pickle.dump(emotes, file=f, protocol=2)
 
