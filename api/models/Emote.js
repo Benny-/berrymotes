@@ -40,6 +40,21 @@ module.exports = {
             type: 'INTEGER',
             required: true,
         },
+        // The optional width/width for the base image in length units.
+        // This can be a absolute or a relative length unit.
+        // https://developer.mozilla.org/en-US/docs/Web/CSS/length#Units
+        display_width: {
+            type: 'STRING',
+            size: 8,
+            maxLength: 8,
+            alphanumeric: true,
+        },
+        display_height: {
+            type: 'STRING',
+            size: 8,
+            maxLength: 8,
+            alphanumeric: true,
+        },
         
         // All hover attributes must be ignored if has_hover is set to false.
         has_hover: {
@@ -63,6 +78,21 @@ module.exports = {
         },
         hover_height: {
             type: 'INTEGER',
+        },
+        // The optional width/width for the hover image in length units.
+        // This can be a absolute or a relative length unit.
+        // https://developer.mozilla.org/en-US/docs/Web/CSS/length#Units
+        hover_display_width: {
+            type: 'STRING',
+            size: 8,
+            maxLength: 8,
+            alphanumeric: true,
+        },
+        hover_display_height: {
+            type: 'STRING',
+            size: 8,
+            maxLength: 8,
+            alphanumeric: true,
         },
         
         // The origin of this emote. Is always a hyperlink.
