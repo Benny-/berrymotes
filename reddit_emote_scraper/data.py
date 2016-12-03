@@ -10,6 +10,7 @@ image_blacklist = [
     "http://c.thumbs.redditmedia.com/5N6wrRpkfXoAv5lP.png",
     "http://e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
     "http://b.thumbs.redditmedia.com/9KPIZR5eNlWAev7m.png",
+    "http", # PatronNight put a link with a imgur background in BTpatron subreddit. The parser saw this as 'http'.
 ]
 
 subreddits = [
@@ -217,6 +218,32 @@ subreddits = [
     "SGaP",
     "mlpoc",
     "SpanishMeerkat",
+    "MeatEmotes",
+    "BTpatron",
+    "AriaBlaze",
+    "SonataDusk",
+    "asmatteringofemotes",
+    "BTMoonlit",
+    "mylittlesketchheart",
+    "colgateinquisition",
+    "ponymotesextra2",
+    "freepizzaspizzashop",
+    # "Tiltemotes", Some things are so terrible, they should not exist.
+    'bloomjackquisition',
+    'BulkBicepsquisition',
+    'MyLittleFusions',
+    'MyLittleShellbullet17',
+    'scootalounge',
+    'sombra',
+    'sweetiebot',
+    # 'comicsquisition', comicsquisition uses "background-size:cover". This is not taken into account. The output images look cropped.
+    'Glimmerquisition',
+    'PartyFavor',
+    'SugarBelle',
+    'TheBelleTower',
+    'PonyCountdown',
+    'TroubleShoes',
+    'NightGlider'
 ]
 
 emote_info = [
