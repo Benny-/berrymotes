@@ -34,17 +34,21 @@ class DownloadJob(Job):
             response = None
 
             while (not response or response.status_code != 200) and self._retry > 0:
+                backoff = 0
                 try:
                     self._retry -= 1
                     self.rate_limit_lock and self.rate_limit_lock.acquire()
                     response = self._requests.get(self._url)
+                    if ("over18" in response.url):
+                        response = self._requests.post(response.url, {"over18": "yes"})
                 except Exception, e:
                     logger.exception(e)
                     response = None
                 finally:
                     if not response or response.status_code != 200:
                         logger.warn("Error loading {}, retrying {} more times".format(self._url, self._retry))
-                        sleep(1)
+                        backoff += 10
+                        sleep(backoff)
 
             if self._callback:
                 self._callback(response, **self._callbackargs)

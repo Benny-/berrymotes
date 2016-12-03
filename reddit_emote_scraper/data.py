@@ -1,19 +1,24 @@
 nsfw_subreddits = [
+    # Subreddits which when scraped will automatically have any emotes tagged as nsfw.
     "mylittlensfw",
-    "clopmotes",
+    "clopmotes"
 ]
 
 image_blacklist = [
-    "http://a.thumbs.redditmedia.com/4BIUyA0SW1OkC5ON.png",
-    "http://f.thumbs.redditmedia.com/0Fr3gH0gBwtd9okw.png",
-    "http://b.thumbs.redditmedia.com/GUrfNHIaMEoN29eC.jpg",
-    "http://c.thumbs.redditmedia.com/5N6wrRpkfXoAv5lP.png",
-    "http://e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
-    "http://b.thumbs.redditmedia.com/9KPIZR5eNlWAev7m.png",
-    "http", # PatronNight put a link with a imgur background in BTpatron subreddit. The parser saw this as 'http'.
+    # Prevent any of the stylesheets from ever being emoted.
+    "a.thumbs.redditmedia.com/4BIUyA0SW1OkC5ON.png",
+    "f.thumbs.redditmedia.com/0Fr3gH0gBwtd9okw.png",
+    "b.thumbs.redditmedia.com/GUrfNHIaMEoN29eC.jpg",
+    "c.thumbs.redditmedia.com/5N6wrRpkfXoAv5lP.png",
+    "e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
+    "b.thumbs.redditmedia.com/9KPIZR5eNlWAev7m.png",
+    "e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
+    "b.thumbs.redditmedia.com/tfT-mewdfRyX0d1jQUuBB_c_gh68UE0IHyE7Gti6kBE.png",
+    "http", # PatronNight put a link with a imgur background in BTpatron sub
 ]
 
 subreddits = [
+    # Subreddits to scrape for emotes
     "marmemotes",
     "marmemotes2",
     "mlpaprilfools2014",
@@ -83,6 +88,7 @@ subreddits = [
     "isthisanemoteyet",
     "jacksanimotes",
     "littlecolt",
+    "littlemissbloomotes",
     "lyra",
     "lyraquisition",
     "malsententia",
@@ -247,6 +253,7 @@ subreddits = [
 ]
 
 emote_info = [
+    # Add meta data to emotes; usually used to tag emotes as nsfw. Please add only one alias of an emote.
     {'name': 'thesafewordistoast', 'com': 'bt'},
     {'name': 'toastdeib', 'com': 'bt'},
     {'name': 'gtoastdeib', 'com': 'bt'},
@@ -339,4 +346,8 @@ emote_info = [
     {'name': 'toxinclop', 'nsfw': True},
     {'name': 'dickchaser', 'nsfw': True},
     {'name': 'chaserdance', 'nsfw': True},
+    {'name': 'dustypugfuckdoodle', 'nsfw': True},
+    {'name': 'rdfuriousclopping', 'nsfw': True},
+    {'name': 'moonlitguard', 'nsfw': True},
+    {'name': 'octaviaprotection', 'nsfw': True}
 ]
