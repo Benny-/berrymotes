@@ -15,18 +15,16 @@
 # --------------------------------------------------------------------
 
 import logging
+import argparse
 import time
 import requests
 from bmscraper.ratelimiter import TokenBucket
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 from bmscraper import BMScraper
-
 from data import subreddits, image_blacklist, nsfw_subreddits, emote_info
 from os import path
-import pickle
 import json
+
+logger = logging.getLogger(__name__)
 
 scraper = BMScraper()
 scraper.user = 'ponymoteharvester'
@@ -37,6 +35,21 @@ scraper.nsfw_subreddits = nsfw_subreddits
 scraper.emote_info = emote_info
 scraper.rate_limit_lock = TokenBucket(15, 30)
 scraper.tags_data = requests.get("http://berrymotes.com/assets/data.js").json()
+
+parser = argparse.ArgumentParser(description='Scrape emoticons from reddit.com')
+parser.add_argument(
+    '-d', '--debug',
+    help="Print lots of debugging statements",
+    action="store_const", dest="loglevel", const=logging.DEBUG,
+    default=logging.WARNING,
+)
+parser.add_argument(
+    '-v', '--verbose',
+    help="Be verbose",
+    action="store_const", dest="loglevel", const=logging.INFO,
+)
+args = parser.parse_args()    
+logging.basicConfig(level=args.loglevel)
 
 start = time.time()
 scraper.scrape()
