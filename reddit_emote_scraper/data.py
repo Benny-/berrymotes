@@ -234,7 +234,7 @@ subreddits = [
     "colgateinquisition",
     "ponymotesextra2",
     "freepizzaspizzashop",
-    # "Tiltemotes", Some things are so terrible, they should not exist.
+    "Tiltemotes",
     'bloomjackquisition',
     'BulkBicepsquisition',
     'MyLittleFusions',
@@ -242,14 +242,32 @@ subreddits = [
     'scootalounge',
     'sombra',
     'sweetiebot',
-    # 'comicsquisition', comicsquisition uses "background-size:cover". This is not taken into account. The output images look cropped.
+    'comicsquisition', # comicsquisition uses "background-size:cover". This is not taken into account. The output images look cropped.
     'Glimmerquisition',
     'PartyFavor',
     'SugarBelle',
     'TheBelleTower',
     'PonyCountdown',
     'TroubleShoes',
-    'NightGlider'
+    'NightGlider',
+    'antisonicmotes',
+    'arity',
+    'coloratura',
+    'discord',
+    'flashsentry',
+    'flimflambrothers',
+    'flurryheart',
+    'heyitsshugamotes',
+    'kingemotes',
+    'mlpccg',
+    'mlpgabby',
+    'mylittlegaming',
+    'ponk',
+    'roleplayponies',
+    'rosequisition',
+    'shymotes',
+    'starlightglimmer',
+    'sunburst',
 ]
 
 emote_info = [
