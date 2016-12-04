@@ -14,6 +14,7 @@ image_blacklist = [
     "b.thumbs.redditmedia.com/9KPIZR5eNlWAev7m.png",
     "e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
     "b.thumbs.redditmedia.com/tfT-mewdfRyX0d1jQUuBB_c_gh68UE0IHyE7Gti6kBE.png",
+    "c.thumbs.redditmedia.com/5N6wrRpkfXoAv5lP.png", # libpuzzle pukes on this image. Likely because it is too dam big.
     "http", # PatronNight put a link with a imgur background in BTpatron sub
 ]
 

@@ -39,6 +39,7 @@ import execjs
 import tempfile
 import pickle
 import urlparse
+import json
 
 import logging
 
@@ -131,7 +132,7 @@ class BMScraper():
         workpool.shutdown()
         workpool.join()
 
-    def _callback_fetch_stylesheet(self, response, subreddit=None):
+    def _callback_fetch_stylesheet(self, response, subreddit):
         if not response:
             logger.error("Failed to fetch css for {}".format(subreddit))
             return
@@ -253,16 +254,39 @@ class BMScraper():
                 if re.match(r'^(https?:)?//', emote['background']):
                     emote['background-image'] = emote['background']
                     del emote['background']
+            
+            validEmote = True
+            
+            # Sometimes people make css errors, fix those.
+            if 'background-image' not in emote and 'background' in emote:
+                if re.match(r'^(https?:)?//', emote['background']):
+                    emote['background-image'] = emote['background']
+                    del emote['background']
+            
+            if 'background-image' not in emote:
+                logger.warn('Discarding emotes (does not contain a background-image): {}'.format(emote['names'][0]))
+                validEmote = False
+            
+            if 'background-position' in emote:
+                for backgroundPosValue in emote['background-position']:
+                    if ',' in backgroundPosValue:
+                        logger.warn('Discarding emotes (Contains illegal "," in background-position css attribute): {}'.format(emote['names'][0]))
+                        validEmote = False
+            
+            if 'hover-background-position' in emote:
+                for backgroundPosValue in emote['hover-background-position']:
+                    if ',' in backgroundPosValue:
+                        logger.warn('Discarding emotes (Contains illegal "," in hover-background-position css attribute): {}'.format(emote['names'][0]))
+                        validEmote = False
+            
+            if 'background-image' in emote:
+                if emote['background-image'] in self.image_blacklist:
+                    logger.warn('Discarding emotes (background-image is on blacklist): {}'.format(emote['names'][0]))
+                    validEmote = False
 
-            # need at least an image for a ponymote. Some trash was getting in.
-            # 1500 pixels should be enough for anyone!
-            if ('background-image' in emote
-                and emote['background-image'] not in self.image_blacklist
-                and 'height' in emote and emote['height'] < 1500
-                and 'width' in emote and emote['width'] < 1500):
+            if validEmote:
                 emotes.append(emote)
-            else:
-                logger.warn('Discarding emotes {}'.format(emote['names'][0]))
+
         return emotes
 
     def _process_stylesheets(self):
@@ -302,7 +326,7 @@ class BMScraper():
         will still be incorrectly merged.
         
         The _extract_single_image() function in emote.py normalizes some of the values.
-        Care should be taken so both inputs are normalized (or ensure both are NOT normalized).
+        Care should be taken so both inputs are normalized.
         """
         if (a.get('background-image')           ==  b.get('background-image')           and
             a.get('background-position')        ==  b.get('background-position')        and
@@ -353,8 +377,8 @@ class BMScraper():
 
         old_emotes = None
         try:
-            with open(FILENAME + '.pickle_v2',"rb") as f:\
-                old_emotes = pickle.Unpickler(f).load()
+            with open(FILENAME + '.json') as f:
+                old_emotes = json.load(f)
         except:
             logger.warn("Could not read old emote file, this is expected if you run this for the first time.")
 
@@ -492,14 +516,14 @@ class BMScraper():
         workpool.shutdown()
         workpool.join()
 
-    def _callback_download_image(self, response, image_path=None):
-        if not image_path:
+    def _callback_download_image(self, response, image_path):
+        
+        if response.status_code != 200:
+            logger.error("Failed to fetch image at {} (Status {})".format(response.url, response.status_code))
             return
-
+        
         data = response.content
-        if not data:
-            return
-
+        
         image_dir = path.dirname(image_path)
 
         modified_date_tuple = parsedate(response.headers['Last-Modified'])
@@ -680,6 +704,7 @@ class BMScraper():
                     continue
 
                 image_path = get_single_image_path(emote)
+                logger.debug('puzzle.get_cvec_from_file('+image_path+')')
                 vector = puzzle.get_cvec_from_file(image_path)
 
                 for other_emote, other_compressed_vector in processed_emotes:

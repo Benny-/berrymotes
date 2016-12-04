@@ -127,7 +127,7 @@ def _extract_single_image(emote, spritemap_img, position_key, width_key, height_
             x += imageBox[0]
             y += imageBox[1]
         else:
-            logger.warn('Emote '+canonical_name(emote)+' is empty')
+            logger.warn('Emote: '+canonical_name(emote)+' is empty')
     
     # We explicitly set the width and height values in the emote if it was missing.
     # This will make our output more consistent and makes it easier to process.
