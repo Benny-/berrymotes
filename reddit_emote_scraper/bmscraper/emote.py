@@ -5,8 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# This function returns a path to a single image.
-# This image can be the same as sprite-map image.
+# This function returns a path to the primary image of this emote.
 def get_single_image_path(emote, extension=None):
     if extension:
         emote['single_image_extension'] = extension.lower()

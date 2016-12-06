@@ -15,6 +15,7 @@
 import re
 import os
 
+
 def get_folder_name(image_url):
     re_folder = re.compile('(.)\.thumbs.redditmedia.com')
     folder_name = re_folder.search(image_url)
@@ -22,16 +23,18 @@ def get_folder_name(image_url):
         return 't'
     else:
         return folder_name.group(1)
-        
+
+
 def get_file_name(image_url):
     return image_url[image_url.rfind('/') + 1:]
-        
+
+
 def get_file_path(image_url, rootdir='.'):
     file_name = get_file_name(image_url)
     folder_name = get_folder_name(image_url)
-    
+
     file_path = [rootdir, folder_name]
     file_path.append(file_name)
-    
+
     return os.path.sep.join(file_path)
 

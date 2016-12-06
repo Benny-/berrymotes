@@ -62,16 +62,18 @@ class BMScraper():
         self.emotes = []
         self.image_blacklist = []
         self.nsfw_subreddits = []
+        self.broken_emotes = []
         self.emote_info = []
-        self.tags_data = {}
-        self.cache_dir = 'cache'
+        self.reddit_cache = 'cache'
+        self.session_cache = 'session_cache'
+        self.output_dir = 'output'
         self.workers = 20
         self.rate_limit_lock = None
 
         self.mutex = threading.RLock()
 
         self._requests = requests.Session()
-        self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.0 by /u/marminatoror'}
+        self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.1'}
 
     def _remove_images_emote(self, emote):
         try:
@@ -91,35 +93,44 @@ class BMScraper():
 
     def _merge_emotes(self, keeper, goner):
         logger.debug('Merging '+canonical_name(goner)+' into '+canonical_name(keeper))
-        
+
         self._remove_images_emote(goner)
-        
+
         keeper['names'] = keeper['names'] + goner['names']
         keeper['names'] = _remove_duplicates(keeper['names'])
         keeper['tags'] = keeper.get('tags', []) + goner.get('tags', [])
         goner['names'] = []
 
-    def _login(self):
-        logger.info('Logging in')
+    def download_bt_tags(self, download=False):
+        download_location = os.path.join(self.session_cache, "bt-tags.json")
+        if not os.path.exists(download_location) and download:
+            with open(download_location, "w") as f:
+                f.write(self._requests.get("http://berrymotes.com/assets/data.js").text)
+
+    def download_bpm_tags(self, download=False):
+        download_location = os.path.join(self.session_cache, "bpm-resources.js")
+        if not os.path.exists(download_location) and download:
+            with open(download_location, "w") as f:
+                f.write(self._requests.get("https://ponymotes.net/bpm/bpm-resources.js").text)
+
+    def login(self):
+        logger.info('Logging into reddit')
 
         if self.user and self.password:
             body = {'user': self.user, 'passwd': self.password, "rem": False}
             self.rate_limit_lock and self.rate_limit_lock.acquire()
             self._requests.post('http://www.reddit.com/api/login', body)
 
-    def _fetch_css(self):
+    def fetch_css(self):
         logger.info('Beginning to fetch css files')
-
-        if not os.path.exists('css'):
-            os.makedirs('css')
 
         logger.debug("Fetching css using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
 
         for subreddit in self.subreddits:
             try:
-                css_subreddit_path = path.join('css', subreddit) + '.css'
-                with open( css_subreddit_path, 'r' ) as f:
+                css_subreddit_path = path.join(self.session_cache, subreddit.lower()) + '.css'
+                with open(css_subreddit_path, 'r') as f:
                     pass
             except:
                 workpool.put(DownloadJob(self._requests,
@@ -144,19 +155,19 @@ class BMScraper():
         text = response.text.encode('utf-8')
         modified_date_tuple = parsedate(response.headers['Last-Modified'])
         modified_date_timestamp = calendar.timegm(modified_date_tuple)
-        
-        css_cache_file_path = get_file_path(response.url, rootdir=self.cache_dir )
+
+        css_cache_file_path = get_file_path(response.url, rootdir=self.reddit_cache )
         with self.mutex:
             if not os.path.exists(os.path.dirname(css_cache_file_path)):
                 os.makedirs(os.path.dirname(css_cache_file_path))
-        css_subreddit_path = path.join('css', subreddit) + '.css'
+        css_subreddit_path = path.join(self.session_cache, subreddit.lower()) + '.css'
 
         with open( css_cache_file_path, 'w' ) as f:
             f.write( text )
 
         utime(css_cache_file_path, (time.time(), modified_date_timestamp))
 
-        os.symlink(os.path.relpath(css_cache_file_path, 'css/'), css_subreddit_path );
+        os.symlink(os.path.relpath(css_cache_file_path, self.session_cache + '/'), css_subreddit_path );
 
     def _parse_css(self, data):
         cssparser = tinycss.make_parser('page3')
@@ -201,8 +212,7 @@ class BMScraper():
                             emotes_staging[match.group(1)].update(rules)
         return emotes_staging
 
-    def _process_stylesheet(self, content, subreddit=None):
-
+    def _process_stylesheet(self, content, subreddit):
         emotes = []
         emotes_staging = self._parse_css(content)
         if not emotes_staging:
@@ -227,24 +237,6 @@ class BMScraper():
                         if key != 'name':
                             emote[key] = val
 
-                tag_data = None
-                if name in self.tags_data:
-                    tag_data = self.tags_data[name]
-
-                if tag_data:
-                    if 'tags' not in emote:
-                        emote['tags'] = []
-                    logger.debug('Tagging: {} with {}'.format(name, tag_data))
-                    emote['tags'].extend(k for k, v in tag_data['tags'].iteritems() if v['score'] >= 1)
-                    if tag_data.get('specialTags'):
-                        emote['tags'].extend(tag_data['specialTags'])
-
-                    if 'added_date' in tag_data:
-                        added_date = parser.parse(tag_data['added_date'])
-                        now = datetime.now(tzutc())
-                        if now - added_date < timedelta(days=7):
-                            emote['tags'].append('new')
-
             if subreddit in self.nsfw_subreddits:
                 emote['nsfw'] = True
             emote['sr'] = subreddit
@@ -254,31 +246,31 @@ class BMScraper():
                 if re.match(r'^(https?:)?//', emote['background']):
                     emote['background-image'] = emote['background']
                     del emote['background']
-            
+
             validEmote = True
-            
+
             # Sometimes people make css errors, fix those.
             if 'background-image' not in emote and 'background' in emote:
                 if re.match(r'^(https?:)?//', emote['background']):
                     emote['background-image'] = emote['background']
                     del emote['background']
-            
+
             if 'background-image' not in emote:
                 logger.warn('Discarding emotes (does not contain a background-image): {}'.format(emote['names'][0]))
                 validEmote = False
-            
+
             if 'background-position' in emote:
                 for backgroundPosValue in emote['background-position']:
                     if ',' in backgroundPosValue:
                         logger.warn('Discarding emotes (Contains illegal "," in background-position css attribute): {}'.format(emote['names'][0]))
                         validEmote = False
-            
+
             if 'hover-background-position' in emote:
                 for backgroundPosValue in emote['hover-background-position']:
                     if ',' in backgroundPosValue:
                         logger.warn('Discarding emotes (Contains illegal "," in hover-background-position css attribute): {}'.format(emote['names'][0]))
                         validEmote = False
-            
+
             if 'background-image' in emote:
                 if emote['background-image'] in self.image_blacklist:
                     logger.warn('Discarding emotes (background-image is on blacklist): {}'.format(emote['names'][0]))
@@ -289,12 +281,12 @@ class BMScraper():
 
         return emotes
 
-    def _process_stylesheets(self):
+    def process_stylesheets(self):
         logger.info('Beginning to process stylesheets')
 
         for subreddit in self.subreddits:
             content = None
-            css_subreddit_path = path.join('css', subreddit) + '.css'
+            css_subreddit_path = path.join(self.session_cache, subreddit.lower()) + '.css'
 
             try:
                 with open( css_subreddit_path, 'r' ) as f:
@@ -304,11 +296,11 @@ class BMScraper():
                     for emote in emotes:
                         # The emote['last-modified'] is set to the last modify date.
                         # The last-modified http headers are used for this.
-                        # 
+                        #
                         # Here we check if CSS file modified date. Image files
                         # are handled at a later stage. (so this value could be over-
                         # written at a later stage)
-                        # 
+                        #
                         # A additional operation related to modified date happens
                         # in _read_old_emote(). We set the modify date to the oldest
                         # possible date, as CSS header modify date is not reliable.
@@ -320,11 +312,11 @@ class BMScraper():
     def _emote_image_source_equal(self, a, b):
         """
         This function compares if both emotes use the same image sources.
-        
+
         This method is not perfect. It ignores CSS attributes.
         A emote using the same image source (While still being visually different using CSS)
         will still be incorrectly merged.
-        
+
         The _extract_single_image() function in emote.py normalizes some of the values.
         Care should be taken so both inputs are normalized.
         """
@@ -339,7 +331,7 @@ class BMScraper():
             return True
         return False
 
-    def _dedupe_emotes(self):
+    def dedupe_emotes(self):
         logger.info('Beginning to de-duplicate emotes based on meta-data')
 
         for subreddit in self.subreddits:
@@ -366,62 +358,33 @@ class BMScraper():
                         self._merge_emotes(subreddit_emote, emote)
                         self.emotes.remove(emote)
 
-    def _read_old_emotes(self):
-        """
-        This function will remove a emote's image from disk if the emote's image has changed.
-        It will try to check if a emote has not changed and change the Last-Modified in the appropriate way.
-        It will create self.old_emotes or set it to None.
-        """
-        # XXX: Filename is defined in two locations now. Here and one level higher in scrape.py.
-        FILENAME = path.join('output', 'emotes_metadata')
+    def add_bt_tags(self):
 
-        old_emotes = None
-        try:
-            with open(FILENAME + '.json') as f:
-                old_emotes = json.load(f)
-        except:
-            logger.warn("Could not read old emote file, this is expected if you run this for the first time.")
+        bt_tags = None
+        with open(os.path.join(self.session_cache, "bt-tags.json")) as f:
+            bt_tags = json.load(f)
 
-        self.old_emotes = old_emotes
-        if old_emotes is None:
-            return
+        for emote in self.emotes:
+            for name in emote['names']:
 
-        old_emote_map = {}
-        for old_emote in old_emotes:
-            old_emote_map[canonical_name(old_emote)] = old_emote
+                tag_data = None
+                if name in bt_tags:
+                    tag_data = bt_tags[name]
 
-        changed_emotes = []
-        for new_emote in self.emotes:
-            if canonical_name(new_emote) in old_emote_map:
-                old_emote = old_emote_map[canonical_name(new_emote)]
-                equal = self._emote_image_source_equal(old_emote, new_emote)
-                if not equal:
-                    logger.info("Emote: " + canonical_name(old_emote) + "'s spritemap has been updated. Emote marked as updated since comparing code is missing. TODO: Visually compare the old and new emote to be sure they are changed.")
-                    # Someone might have added a image to a spritemap,
-                    # this will cause the background-image to change
-                    # making the old and new emote unequal, even if they look exactly the same.
-                    # There is only one solution for this:
-                    # TODO: Visually compare the old and new emote to be sure they are changed.
-                    self._remove_images_emote(new_emote)
-                    changed_emotes.append(new_emote)
-                else:
-                    # We set the new emote's modified date from the old one.
-                    # The new_emote modified date comes from the css or image files.
-                    # But the old and new emote are the same, so we will keep the oldest
-                    # modified date.
-                    # 
-                    # The additional new_emote['Last-Modified'] > old_emote['Last-Modified'] check
-                    # is here if this script is run on old css data (If old_emotes are
-                    # actually generated from newer css data) (we always keep the oldest
-                    # valid modify date).
-                    if new_emote['Last-Modified'] > old_emote['Last-Modified']:
-                        new_emote['Last-Modified'] = old_emote['Last-Modified']
-                    # Technically its not correct, the emote's css might have changed. Meh.
+                    if tag_data:
+                        if 'tags' not in emote:
+                            emote['tags'] = []
+                        logger.debug('Tagging: {} with {}'.format(name, tag_data))
+                        emote['tags'].extend(k for k, v in tag_data['tags'].iteritems() if v['score'] >= 1)
+                        if tag_data.get('specialTags'):
+                            emote['tags'].extend(tag_data['specialTags'])
 
-        # The changed emotes will need to be re-extracted.
-        self._extract_images_from_spritemaps(changed_emotes)
+    def add_bpm_tags(self):
 
-    def _add_bpm_tags(self):
+        bpm_resources_text = None
+        with open(os.path.join(self.session_cache, "bpm-resources.js")) as f:
+            bpm_resources_text = f.read()
+
         # Some people prefer to store web data in code instead of json.
         # This function extracts data from javascript code.
         def get_globals_from_js(javascript, js_var_names):
@@ -434,49 +397,40 @@ class BMScraper():
 
         # bpm stores information using hexidecimals to save some bits
         # We convert those numbers back to string tags here
-        # Compare to the lookup_core_emote() function in https://ponymotes.net/bpm/betterponymotes.user.js
+        # Compare to the lookup_core_emote() function in
+        # https://github.com/Rothera/bpm/blob/a931dbcfaba06387bb52042e4e6bf8c06934b874/addon/bpm-store.js#L96
         def expand_BPM_tags(bpm_raw_data):
             expanded_emotes = {}
             tag_id2name = bpm_raw_data['tag_id2name']
             emote_map = bpm_raw_data['emote_map']
             for name, emote_data in emote_map.iteritems():
                 parts = emote_data.split(',')
-                
+
                 emote = {}
                 expanded_emotes[name.split("/").pop()] = emote
-                
-                flag_data = parts[0];
-                tag_data = parts[1];
-                
-                flags = int(flag_data[0:1], 16) # Hexadecimal
-                source_id = int(flag_data[1:3], 16); # Hexadecimal
-                size = int(flag_data[3:7], 16); # Hexadecimal
+
+                flag_data = parts[0]
+                tag_data = parts[1]
+
+                flags = int(flag_data[0:1], 16)  # Hexadecimal
+                source_id = int(flag_data[1:3], 16)  # Hexadecimal
+                size = int(flag_data[3:7], 16)  # Hexadecimal
                 # var is_nsfw = (flags & _FLAG_NSFW);
-                is_redirect = False
                 # var is_redirect = (flags & _FLAG_REDIRECT);
 
-                base = None
-
-                tags_ints = [];
-                start = 0;
+                tags_ints = []
+                start = 0
                 while True:
-                    tag_str = tag_data[start: start+2]
+                    tag_str = tag_data[start: start + 2]
                     if tag_str == "":
                         break
-                    tags_ints.append(int(tag_str, 16)) # Hexadecimal
+                    tags_ints.append(int(tag_str, 16))  # Hexadecimal
                     start += 2
 
-                if(is_redirect):
-                    base = parts[2]
-                else:
-                    base = name
-                
-                emote['tags'] = [ tag_id2name[tag_int][1:] for tag_int in tags_ints]
-                
+                emote['tags'] = [tag_id2name[tag_int][1:] for tag_int in tags_ints]
+
             return expanded_emotes
-        
-        # This is not part of any external api. So it might disappear suddenly.
-        bpm_resources_text = self._requests.get("https://ponymotes.net/bpm/bpm-resources.js").text
+
         bpm_raw_data = get_globals_from_js(bpm_resources_text, [
                                     'sr_id2name',
                                     'sr_name2id',
@@ -485,13 +439,13 @@ class BMScraper():
                                     'emote_map',
                                 ])
         bpm_emotes = expand_BPM_tags(bpm_raw_data)
-        
+
         for emote in self.emotes:
             for name in emote['names']:
                 if name in bpm_emotes:
                     emote['tags'] = emote.get('tags', []) + bpm_emotes[name]['tags']
 
-    def _download_images(self):
+    def download_images(self):
         logger.debug("Downloading images using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
 
@@ -500,7 +454,7 @@ class BMScraper():
                 if not image_url:
                     continue
 
-                file_path = get_file_path(image_url, rootdir=self.cache_dir)
+                file_path = get_file_path(image_url, rootdir=self.reddit_cache)
                 if not path.isfile(file_path):
                     workpool.put(DownloadJob(self._requests,
                                              urlparse.urljoin('https://s3.amazonaws.com/',image_url),
@@ -517,13 +471,13 @@ class BMScraper():
         workpool.join()
 
     def _callback_download_image(self, response, image_path):
-        
+
         if response.status_code != 200:
             logger.error("Failed to fetch image at {} (Status {})".format(response.url, response.status_code))
             return
-        
+
         data = response.content
-        
+
         image_dir = path.dirname(image_path)
 
         modified_date_tuple = parsedate(response.headers['Last-Modified'])
@@ -543,10 +497,10 @@ class BMScraper():
         Create a {emote name}_exploded directory
         This directory contains all frames.
         The frames are cut out a spritemap if needed.
-        
+
         Returns True if animation was not cut out a spritemap. (background image size == individual frames sizes)
         Returns False if animation was part of a spritemap and cutting was required. (background image size != individual frames sizes)
-        
+
         Does not handle hover images.
         '''
         explode_dir = get_explode_directory(emote)
@@ -597,7 +551,7 @@ class BMScraper():
         apngasm( *args )
 
     def _handle_background_for_emote(self, emote, background_image_path, background_image):
-        
+
         if not os.path.exists(os.path.dirname(get_single_image_path(emote))):
             os.makedirs(os.path.dirname(get_single_image_path(emote)))
 
@@ -647,7 +601,7 @@ class BMScraper():
             if not image_url:
                 continue
 
-            background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
+            background_image_path = get_file_path(image_url, rootdir=self.reddit_cache)
             background_image_path = path.realpath(background_image_path)
             modified_time = path.getmtime(background_image_path)
             with open(background_image_path, 'rb') as f:
@@ -670,7 +624,7 @@ class BMScraper():
             if not image_url:
                 continue
 
-            hover_background_image_path = get_file_path(image_url, rootdir=self.cache_dir)
+            hover_background_image_path = get_file_path(image_url, rootdir=self.reddit_cache)
             background_image_path = path.realpath(hover_background_image_path)
             modified_time = path.getmtime(hover_background_image_path)
             hover_background_image = Image.open(open(hover_background_image_path, 'rb'))
@@ -679,7 +633,79 @@ class BMScraper():
                 if (emote['Last-Modified'] < modified_time):
                     emote['Last-Modified'] = modified_time
 
-    def _visually_dedupe_emotes(self):
+    def extract_images_from_spritemaps(self):
+        self._extract_images_from_spritemaps(self.emotes)
+
+    def read_old_emotes(self):
+        """
+        This function will remove a emote's image from disk if the emote's image has changed.
+        It will try to check if a emote has not changed and change the Last-Modified in the appropriate way.
+        It will create self.old_emotes or set it to None.
+        """
+        # XXX: Filename is defined in two locations now. Here and one level higher in scrape.py.
+        FILENAME = path.join('output', 'emotes_metadata')
+
+        old_emotes = None
+        try:
+            with open(FILENAME + '.json') as f:
+                old_emotes = json.load(f)
+        except:
+            logger.warn("Could not read old emote file, this is expected if you run this for the first time.")
+
+        self.old_emotes = old_emotes
+        if old_emotes is None:
+            return
+
+        old_emote_map = {}
+        for old_emote in old_emotes:
+            old_emote_map[canonical_name(old_emote)] = old_emote
+
+        changed_emotes = []
+        for new_emote in self.emotes:
+            if canonical_name(new_emote) in old_emote_map:
+                old_emote = old_emote_map[canonical_name(new_emote)]
+                equal = self._emote_image_source_equal(old_emote, new_emote)
+                if not equal:
+                    logger.info("Emote: " + canonical_name(old_emote) + "'s spritemap has been updated. Emote marked as updated since comparing code is missing. TODO: Visually compare the old and new emote to be sure they are changed.")
+                    # Someone might have added a image to a spritemap,
+                    # this will cause the background-image to change
+                    # making the old and new emote unequal, even if they look exactly the same.
+                    # There is only one solution for this:
+                    # TODO: Visually compare the old and new emote to be sure they are changed.
+                    self._remove_images_emote(new_emote)
+                    changed_emotes.append(new_emote)
+                else:
+                    # We set the new emote's modified date from the old one.
+                    # The new_emote modified date comes from the css or image files.
+                    # But the old and new emote are the same, so we will keep the oldest
+                    # modified date.
+                    #
+                    # The additional new_emote['Last-Modified'] > old_emote['Last-Modified'] check
+                    # is here if this script is run on old css data (If old_emotes are
+                    # actually generated from newer css data) (we always keep the oldest
+                    # valid modify date).
+                    if new_emote['Last-Modified'] > old_emote['Last-Modified']:
+                        new_emote['Last-Modified'] = old_emote['Last-Modified']
+                    # Technically its not correct, the emote's css might have changed. Meh.
+
+        # The changed emotes will need to be re-extracted.
+        self._extract_images_from_spritemaps(changed_emotes)
+
+    def remove_broken_emotes(self):
+        # Sometime I wonder if all my code is horrible horrible inefficient. [](/ff01)
+        erase = []
+        beginning_of_time = datetime(1970,1,1)
+        for broken_emote in self.broken_emotes:
+            marked_on_utc_seconds = (broken_emote['marked_on'] - beginning_of_time).total_seconds()
+            for emote in self.emotes:
+                if(canonical_name(emote) == broken_emote['canonical_name']):
+                    erase.append(emote)
+                    
+                    if(emote['Last-Modified'] > marked_on_utc_seconds):
+                        logger.warn('Emote: ' + canonical_name(emote) + ' is marked for removal, but has a modify date after the mark date. Please review this emote for re-approval into the emote pool.')
+        self.emotes = [emote for emote in self.emotes if emote not in erase]
+
+    def visually_dedupe_emotes(self):
         logger.info('Beginning to visually dedupe emotes')
         processed_emotes = []
         duplicates = []
@@ -724,7 +750,7 @@ class BMScraper():
 
         self.emotes = [emote for emote in self.emotes if emote not in duplicates]
 
-    def _emote_post_preferance(self):
+    def emote_post_preferance(self):
         '''A emote's first name will be used for posting. Some names are preferred over other names. We re-order the names here.'''
 
         # We push all the numbered names back. They are generally not very descriptive.
@@ -749,25 +775,12 @@ class BMScraper():
                     descriptive_names.append(name)
             emote['names'] = descriptive_names + long_names
 
-    def _remove_garbage(self):
+    def remove_garbage(self):
         for emote in self.emotes:
             if 'tags' in emote:
                 emote['tags'] = _remove_duplicates(emote['tags'])
                 if '' in emote['tags']:
                     emote['tags'].remove('')
-
-    def scrape(self):
-        self._login()
-        self._fetch_css()
-        self._process_stylesheets()
-        self._dedupe_emotes()
-        self._add_bpm_tags()
-        self._download_images()
-        self._extract_images_from_spritemaps(self.emotes)
-        self._read_old_emotes() # This will read the old emotes. Read function help for details.
-        self._visually_dedupe_emotes()
-        self._emote_post_preferance()
-        self._remove_garbage()
 
     def export_emotes(self):
         return self.emotes

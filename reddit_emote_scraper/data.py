@@ -1,3 +1,6 @@
+
+from datetime import datetime
+
 nsfw_subreddits = [
     # Subreddits which when scraped will automatically have any emotes tagged as nsfw.
     "mylittlensfw",
@@ -269,6 +272,22 @@ subreddits = [
     'shymotes',
     'starlightglimmer',
     'sunburst',
+]
+
+# Only emotes who are irredeemeble broken should be placed here.
+# Please use UTC dates.
+# The marked_on dates will be used to give warnings to the user if the
+# emotes have been changed after these dates. It might indicate the emotes
+# are fixed.
+broken_emotes = [
+    {
+        'canonical_name': 'r/antisonicmotes/buttpose',
+        'marked_on': datetime(2016,12,05),
+    },
+    {
+        'canonical_name': 'r/antisonicmotes/theBengersFavoritestPonyEver',
+        'marked_on': datetime(2016,12,05),
+    },
 ]
 
 emote_info = [
