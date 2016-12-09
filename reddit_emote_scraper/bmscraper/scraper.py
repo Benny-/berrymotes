@@ -73,21 +73,21 @@ class BMScraper():
         self.mutex = threading.RLock()
 
         self._requests = requests.Session()
-        self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.1'}
+        self._requests.headers = {'user-agent', 'User-Agent: Ponymote harvester v2.0 by /u/marminatoror''}
 
     def _remove_images_emote(self, emote):
         try:
-            os.remove(get_single_image_path(emote))
+            os.remove(get_single_image_path(self.output_dir, emote))
         except:
             pass
 
         try:
-            os.remove(get_single_hover_image_path(emote))
+            os.remove(get_single_hover_image_path(self.output_dir, emote))
         except:
             pass
 
         try:
-            shutil.rmtree(get_explode_directory(emote))
+            shutil.rmtree(get_explode_directory(self.output_dir, emote))
         except:
             pass
 
@@ -541,7 +541,7 @@ class BMScraper():
             animation_xml = etree.parse(f).getroot()
 
         args = []
-        args = args + ['--force', '-o', get_single_image_path(emote)]
+        args = args + ['--force', '-o', get_single_image_path(self.output_dir, emote)]
         for frame_xml in animation_xml:
             frame_file = os.path.join(explode_dir,frame_xml.get('src'))
             delay = self._calculate_frame_delay(frame_xml.get('delay'))
@@ -552,25 +552,25 @@ class BMScraper():
 
     def _handle_background_for_emote(self, emote, background_image_path, background_image):
 
-        if not os.path.exists(os.path.dirname(get_single_image_path(emote))):
-            os.makedirs(os.path.dirname(get_single_image_path(emote)))
+        if not os.path.exists(os.path.dirname(get_single_image_path(self.output_dir, emote))):
+            os.makedirs(os.path.dirname(get_single_image_path(self.output_dir, emote)))
 
         if emote['img_animation']:
             same_as_spritemap = self._explode_emote(emote, background_image_path)
-            if not same_as_spritemap and not os.path.exists(get_single_image_path(emote)):
+            if not same_as_spritemap and not os.path.exists(get_single_image_path(self.output_dir, emote)):
                 self._reassemble_emote_png(emote)
         else:
             # Extracted images should not be auto-cropped if they contain a hover.
             # The hover image may otherwise no longer align with the image below.
             extracted_single_image = extract_single_image(emote, background_image, not has_hover(emote))
             same_as_spritemap = cmp(background_image.size, extracted_single_image.size) == 0
-            if not same_as_spritemap and not os.path.exists(get_single_image_path(emote)):
-                with open(get_single_image_path(emote), 'wb') as f:
+            if not same_as_spritemap and not os.path.exists(get_single_image_path(self.output_dir, emote)):
+                with open(get_single_image_path(self.output_dir, emote), 'wb') as f:
                     extracted_single_image.save(f)
 
         if same_as_spritemap:
-            shutil.copyfile(background_image_path, get_single_image_path(emote, background_image.format))
-            shutil.copystat(background_image_path, get_single_image_path(emote))
+            shutil.copyfile(background_image_path, get_single_image_path(self.output_dir, emote, background_image.format))
+            shutil.copystat(background_image_path, get_single_image_path(self.output_dir, emote))
 
         if has_hover(emote) and emote['img_animation']:
             logger.error('Emote '+friendly_name(emote)+' is animated and contains a hover. This was never anticipated any output this script generates may be incorrect')
@@ -643,7 +643,7 @@ class BMScraper():
         It will create self.old_emotes or set it to None.
         """
         # XXX: Filename is defined in two locations now. Here and one level higher in scrape.py.
-        FILENAME = path.join('output', 'emotes_metadata')
+        FILENAME = path.join(self.output_dir, 'emotes_metadata')
 
         old_emotes = None
         try:
@@ -692,7 +692,6 @@ class BMScraper():
         self._extract_images_from_spritemaps(changed_emotes)
 
     def remove_broken_emotes(self):
-        # Sometime I wonder if all my code is horrible horrible inefficient. [](/ff01)
         erase = []
         beginning_of_time = datetime(1970,1,1)
         for broken_emote in self.broken_emotes:
@@ -729,7 +728,7 @@ class BMScraper():
                 if emote['img_animation']:
                     continue
 
-                image_path = get_single_image_path(emote)
+                image_path = get_single_image_path(self.output_dir, emote)
                 logger.debug('puzzle.get_cvec_from_file('+image_path+')')
                 vector = puzzle.get_cvec_from_file(image_path)
 

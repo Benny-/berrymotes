@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # This function returns a path to the primary image of this emote.
-def get_single_image_path(emote, extension=None):
+def get_single_image_path(root, emote, extension=None):
     if extension:
         emote['single_image_extension'] = extension.lower()
 
@@ -15,11 +15,11 @@ def get_single_image_path(emote, extension=None):
     else:
         extension = 'png'
 
-    return os.path.join( *(['output']+((emote['canonical']+"."+extension).split('/'))))
+    return os.path.join( *([root]+((emote['canonical']+"."+extension).split('/'))))
 
 # Please note: A emote's hover image is optional.
 # There is no guarantee this image exists.
-def get_single_hover_image_path(emote, extension=None):
+def get_single_hover_image_path(root, emote, extension=None):
     if extension:
         emote['single_hover_image_extension'] = extension.lower()
 
@@ -28,7 +28,10 @@ def get_single_hover_image_path(emote, extension=None):
     else:
         extension = 'png'
 
-    return os.path.join( *(['output']+((emote['canonical']+"_hover."+extension).split('/'))))
+    return os.path.join( *([root]+((emote['canonical']+"_hover."+extension).split('/'))))
+
+def get_explode_directory(root, emote):
+    return os.path.join(os.path.dirname(get_single_image_path(root, emote)), friendly_name(emote)+"_exploded")
 
 # This function will convert the colors of pure alpha pixels to black.
 # The pixel will still be 100% transparent, but the color values the pixels
@@ -186,5 +189,3 @@ def canonical_name(emote):
     '''
     return emote['canonical']
 
-def get_explode_directory(emote):
-    return os.path.join(os.path.dirname(get_single_image_path(emote)), friendly_name(emote)+"_exploded")

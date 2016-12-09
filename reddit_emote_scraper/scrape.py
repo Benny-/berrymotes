@@ -64,6 +64,13 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    '-c', '--css-fallback',
+    help="This directory will be used for css resolution if no css file could be found or downloaded in the session directory",
+    dest="css_fallback",
+    default="",
+)
+
+parser.add_argument(
     '-ndc', '--no-css-download',
     help="Skip the css download phase",
     action="store_const",
@@ -121,7 +128,7 @@ parser.add_argument(
 
 parser.add_argument(
     '-o', '--output-dir',
-    help="This directory will be used for output. **TODO: Implement this argument**",
+    help="This directory will be used for output.",
     dest="output_dir",
     default="output",
 )
@@ -156,7 +163,7 @@ scraper.remove_garbage()
 logger.info("Finished scrape in {}.".format(time.time() - start))
 emotes = scraper.export_emotes()
 
-FILENAME = path.join('output', 'emotes_metadata')
+FILENAME = path.join(scraper.output_dir, 'emotes_metadata')
 
 with open(FILENAME + '.min.js', 'w') as f:
     f.write("var emotes_metadata = ")
