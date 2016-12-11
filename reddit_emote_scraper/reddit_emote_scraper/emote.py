@@ -1,5 +1,5 @@
 
-import os
+from os.path import join, dirname
 
 import logging
 
@@ -15,7 +15,7 @@ def get_single_image_path(root, emote, extension=None):
     else:
         extension = 'png'
 
-    return os.path.join( *([root]+((emote['canonical']+"."+extension).split('/'))))
+    return join( *([root]+((emote['canonical']+"."+extension).split('/'))))
 
 # Please note: A emote's hover image is optional.
 # There is no guarantee this image exists.
@@ -28,10 +28,10 @@ def get_single_hover_image_path(root, emote, extension=None):
     else:
         extension = 'png'
 
-    return os.path.join( *([root]+((emote['canonical']+"_hover."+extension).split('/'))))
+    return join( *([root]+((emote['canonical']+"_hover."+extension).split('/'))))
 
-def get_explode_directory(root, emote):
-    return os.path.join(os.path.dirname(get_single_image_path(root, emote)), friendly_name(emote)+"_exploded")
+def get_explode_directory(root, emote, hover):
+    return join(dirname(get_single_image_path(join(root, "exploded"), emote)), friendly_name(emote) + ("_hover" if hover else "") )
 
 # This function will convert the colors of pure alpha pixels to black.
 # The pixel will still be 100% transparent, but the color values the pixels

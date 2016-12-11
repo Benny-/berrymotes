@@ -17,15 +17,15 @@
 import logging
 import argparse
 import time
-from bmscraper.ratelimiter import TokenBucket
-from bmscraper import BMScraper
+from reddit_emote_scraper.ratelimiter import TokenBucket
+from reddit_emote_scraper import RedditEmoteScraper
 from data import subreddits, image_blacklist, nsfw_subreddits, broken_emotes, emote_info
 from os import path
 import json
 
 logger = logging.getLogger(__name__)
 
-scraper = BMScraper()
+scraper = RedditEmoteScraper()
 scraper.user = 'ponymoteharvester'
 scraper.password = 'berry_punch'
 scraper.subreddits = subreddits

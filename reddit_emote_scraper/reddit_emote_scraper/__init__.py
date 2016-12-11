@@ -10,7 +10,7 @@
 #
 # --------------------------------------------------------------------
 
-from .scraper import BMScraper
+from .RedditEmoteScraper import RedditEmoteScraper
 
 import logging
 

@@ -9,15 +9,14 @@ nsfw_subreddits = [
 
 image_blacklist = [
     # Prevent any of the stylesheets from ever being emoted.
-    "a.thumbs.redditmedia.com/4BIUyA0SW1OkC5ON.png",
-    "f.thumbs.redditmedia.com/0Fr3gH0gBwtd9okw.png",
-    "b.thumbs.redditmedia.com/GUrfNHIaMEoN29eC.jpg",
-    "c.thumbs.redditmedia.com/5N6wrRpkfXoAv5lP.png",
-    "e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
-    "b.thumbs.redditmedia.com/9KPIZR5eNlWAev7m.png",
-    "e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
-    "b.thumbs.redditmedia.com/tfT-mewdfRyX0d1jQUuBB_c_gh68UE0IHyE7Gti6kBE.png",
-    "c.thumbs.redditmedia.com/5N6wrRpkfXoAv5lP.png", # libpuzzle pukes on this image. Likely because it is too dam big.
+    "//a.thumbs.redditmedia.com/4BIUyA0SW1OkC5ON.png",
+    "//f.thumbs.redditmedia.com/0Fr3gH0gBwtd9okw.png",
+    "//b.thumbs.redditmedia.com/GUrfNHIaMEoN29eC.jpg",
+    "//e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
+    "//b.thumbs.redditmedia.com/9KPIZR5eNlWAev7m.png",
+    "//e.thumbs.redditmedia.com/5ndsCluVaPSIsPOR.png",
+    "//b.thumbs.redditmedia.com/tfT-mewdfRyX0d1jQUuBB_c_gh68UE0IHyE7Gti6kBE.png",
+    "//c.thumbs.redditmedia.com/5N6wrRpkfXoAv5lP.png", # libpuzzle pukes on this image. Likely because it is too dam big.
     "http", # PatronNight put a link with a imgur background in BTpatron sub
 ]
 
@@ -274,7 +273,7 @@ subreddits = [
     'sunburst',
 ]
 
-# Only emotes who are irredeemeble broken should be placed here.
+# Emotes which are broken should be placed here.
 # Please use UTC dates.
 # The marked_on dates will be used to give warnings to the user if the
 # emotes have been changed after these dates. It might indicate the emotes
@@ -287,6 +286,10 @@ broken_emotes = [
     {
         'canonical_name': 'r/antisonicmotes/theBengersFavoritestPonyEver',
         'marked_on': datetime(2016,12,05),
+    },
+    {
+        'canonical_name': 'r/gallopfrey/rforgallopfrey',
+        'marked_on': datetime(2016,12,10),
     },
 ]
 
