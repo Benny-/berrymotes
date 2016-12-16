@@ -141,19 +141,20 @@ scraper.session_cache = args.session_cache
 scraper.output_dir = args.output_dir
 
 start = time.time()
-scraper.download_bt_tags(args.berrytube_tags)
-scraper.download_bpm_tags(args.bpm_tags)
-scraper.login()
+if(args.berrytube_tags):
+    scraper.download_bt_tags()
+if(args.bpm_tags):
+    scraper.download_bpm_tags()
+scraper.login_to_reddit()
 if(args.cssdownload):
     scraper.fetch_css()
 scraper.process_stylesheets()
 scraper.dedupe_emotes()
-if(args.berrytube_tags):
-    scraper.add_bt_tags()
-if(args.bpm_tags):
-    scraper.add_bpm_tags()
+scraper.add_bt_tags()
+scraper.add_bpm_tags()
 scraper.download_images()
 scraper.extract_images_from_spritemaps()
+scraper.cropEmotes()
 # This following command will read the old emotes. It sets the modified date.
 scraper.read_old_emotes()
 scraper.remove_broken_emotes()

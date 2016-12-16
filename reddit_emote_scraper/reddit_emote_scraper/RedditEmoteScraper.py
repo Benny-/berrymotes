@@ -27,7 +27,17 @@ import os
 from os import path, utime
 from .downloadjob import DownloadJob
 from .filenameutils import get_file_path
-from .emote import get_single_image_path, get_single_hover_image_path, extract_single_image, has_hover, extract_single_hover_image, friendly_name, canonical_name, get_explode_directory
+from .emote import get_single_image_path
+from .emote import get_single_hover_image_path
+from .emote import extract_single_image
+from .emote import has_hover
+from .emote import extract_single_hover_image
+from .emote import friendly_name
+from .emote import canonical_name
+from .emote import calculateCrop
+from .emote import get_explode_directory
+from .emote import setPosition
+from .emote import getPosition
 from dateutil import parser
 from PIL import Image
 import pypuzzle
@@ -106,20 +116,22 @@ class RedditEmoteScraper():
         keeper['tags'] = keeper.get('tags', []) + goner.get('tags', [])
         goner['names'] = []
 
-    def download_bt_tags(self, download=False):
+    def download_bt_tags(self):
+        logger.info('Beginning download_bt_tags()')
         download_location = os.path.join(self.session_cache, "bt-tags.json")
-        if not os.path.exists(download_location) and download:
+        if not os.path.exists(download_location):
             with open(download_location, "w") as f:
                 f.write(self._requests.get("http://berrymotes.com/assets/data.js").text)
 
-    def download_bpm_tags(self, download=False):
+    def download_bpm_tags(self):
+        logger.info('Beginning download_bpm_tags()')
         download_location = os.path.join(self.session_cache, "bpm-resources.js")
-        if not os.path.exists(download_location) and download:
+        if not os.path.exists(download_location):
             with open(download_location, "w") as f:
                 f.write(self._requests.get("https://ponymotes.net/bpm/bpm-resources.js").text)
 
-    def login(self):
-        logger.info('Logging into reddit')
+    def login_to_reddit(self):
+        logger.info('Beginning login_to_reddit()')
 
         if self.user and self.password:
             body = {'user': self.user, 'passwd': self.password, "rem": False}
@@ -127,7 +139,7 @@ class RedditEmoteScraper():
             self._requests.post('http://www.reddit.com/api/login', body)
 
     def fetch_css(self):
-        logger.info('Beginning to fetch css files')
+        logger.info('Beginning fetch_css()')
 
         logger.debug("Fetching css using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
@@ -287,7 +299,7 @@ class RedditEmoteScraper():
         return emotes
 
     def process_stylesheets(self):
-        logger.info('Beginning to process stylesheets')
+        logger.info('Beginning process_stylesheets()')
 
         for subreddit in self.subreddits:
             content = None
@@ -337,7 +349,10 @@ class RedditEmoteScraper():
         return False
 
     def dedupe_emotes(self):
-        logger.info('Beginning to de-duplicate emotes based on meta-data')
+        """
+        De-duplicate emotes. Based on meta-data, no visual image comparison.
+        """
+        logger.info('Beginning dedupe_emotes()')
 
         for subreddit in self.subreddits:
             subreddit_emotes = [x for x in self.emotes if x['sr'] == subreddit]
@@ -364,11 +379,15 @@ class RedditEmoteScraper():
                         self.emotes.remove(emote)
 
     def add_bt_tags(self):
-
+        logger.info('Beginning add_bt_tags()')
         bt_tags = None
-        with open(os.path.join(self.session_cache, "bt-tags.json")) as f:
-            bt_tags = json.load(f)
-
+        try:
+            with open(os.path.join(self.session_cache, "bt-tags.json")) as f:
+                bt_tags = json.load(f)
+        except:
+            logger.warn("Could not open bt-tags.json")
+            return
+        
         for emote in self.emotes:
             for name in emote['names']:
 
@@ -385,10 +404,14 @@ class RedditEmoteScraper():
                             emote['tags'].extend(tag_data['specialTags'])
 
     def add_bpm_tags(self):
-
+        logger.info('Beginning add_bpm_tags()')
         bpm_resources_text = None
-        with open(os.path.join(self.session_cache, "bpm-resources.js")) as f:
-            bpm_resources_text = f.read()
+        try:
+            with open(os.path.join(self.session_cache, "bpm-resources.js")) as f:
+                bpm_resources_text = f.read()
+        except:
+            logger.warn("Could not open bpm-resources.js")
+            return
 
         # Some people prefer to store web data in code instead of json.
         # This function extracts data from javascript code.
@@ -451,6 +474,7 @@ class RedditEmoteScraper():
                     emote['tags'] = emote.get('tags', []) + bpm_emotes[name]['tags']
 
     def download_images(self):
+        logger.info('Beginning download_images()')
         logger.debug("Downloading images using {} threads".format(self.workers))
         workpool = WorkerPool(size=self.workers)
 
@@ -518,13 +542,11 @@ class RedditEmoteScraper():
         frames_paths = glob(os.path.join(explode_dir, '*.png'))
         for frame_path in frames_paths:
             background_image = Image.open(frame_path)
-            # Most animations contain changing transparency parts.
-            # Therefore we must not autocrop individual frames.
-            # Otherwise we will end up with differently sized frames.
             if hover:
-                extracted_single_image = extract_single_hover_image(emote, background_image, autocrop=False)
+                extracted_single_image = extract_single_hover_image(emote, background_image)
             else:
-                extracted_single_image = extract_single_image(emote, background_image, autocrop=False)
+                extracted_single_image = extract_single_image(emote, background_image)
+            background_image.close()
             
             if cmp(background_image.size, extracted_single_image.size) != 0:
                 extracted_single_image.save(frame_path)
@@ -556,7 +578,7 @@ class RedditEmoteScraper():
         args = []
         args = args + ['--force', '-o', image_path]
         for frame_xml in animation_xml:
-            frame_file = os.path.join(explode_dir,frame_xml.get('src'))
+            frame_file = os.path.join(explode_dir, frame_xml.get('src'))
             delay = self._calculate_frame_delay(frame_xml.get('delay'))
             args.append(frame_file)
             args.append(delay)
@@ -564,7 +586,7 @@ class RedditEmoteScraper():
         apngasm( *args )
 
     def _handle_background_for_emote(self, emote, background_image_path, background_image):
-        extracted_single_image = extract_single_image(emote, background_image, not has_hover(emote))
+        extracted_single_image = extract_single_image(emote, background_image)
         
         if not os.path.exists(os.path.dirname(get_single_image_path(self.output_dir, emote))):
             os.makedirs(os.path.dirname(get_single_image_path(self.output_dir, emote)))
@@ -613,8 +635,7 @@ class RedditEmoteScraper():
             shutil.copystat(hover_background_image_path, get_single_hover_image_path(self.output_dir, emote))
 
     def _extract_images_from_spritemaps(self, emotes):
-        logger.info('Beginning to extract images from spritemaps')
-
+        
         def is_apng(image_data):
             return 'acTL' in image_data[0:image_data.find('IDAT')]
 
@@ -639,6 +660,7 @@ class RedditEmoteScraper():
                 self._handle_background_for_emote(emote, background_image_path, background_image)
                 if (emote['Last-Modified'] < modified_time):
                     emote['Last-Modified'] = modified_time
+            background_image.close()
 
         key_func = lambda e: e.get('hover-background-image')
         for image_url, emote_group in itertools.groupby(sorted(emotes, key=key_func), key_func):
@@ -664,9 +686,70 @@ class RedditEmoteScraper():
                 self._handle_hover_background_for_emote(emote, hover_background_image_path, hover_background_image)
                 if (emote['Last-Modified'] < modified_time):
                     emote['Last-Modified'] = modified_time
+            hover_background_image.close()
 
     def extract_images_from_spritemaps(self):
+        logger.info('Beginning extract_images_from_spritemaps()')
         self._extract_images_from_spritemaps(self.emotes)
+
+    def cropEmotes(self):
+        logger.info('Beginning cropEmotes()')
+        for emote in self.emotes:
+            base_path = get_single_image_path(self.output_dir, emote)
+            if not has_hover(emote):
+                if(emote['base_img_animation']):
+                    explode_dir = get_explode_directory(self.output_dir, emote, hover=False)
+                    frames_paths = glob(os.path.join(explode_dir, '*.png'))
+                    images = []
+                    for frame_path in frames_paths:
+                        images.append(Image.open(frame_path))
+                    crop = calculateCrop(*images)
+                    if crop is not None:
+                        (x, y) = getPosition(emote, 'background-position')
+                        width = emote['width']
+                        height = emote['height']
+                        if( (x,y,width,height) != crop):
+                            for i, p in zip(images, frames_paths):
+                                c = i.crop(crop)
+                                c.save(p)
+                                c.close()
+                                (width, height) = c.size
+                            setPosition(emote, 'background-position', x, y)
+                            emote['width'] = width
+                            emote['height'] = height
+                            self._reassemble_emote_png(emote, hover=False)
+                    else:
+                        logger.warn('Emote: '+canonical_name(emote)+' is empty')
+                    for i in images:
+                        i.close()
+                else:
+                    i = Image.open(base_path)
+                    crop = calculateCrop(i)
+                    if crop is not None:
+                        (x, y) = getPosition(emote, 'background-position')
+                        (width, height) = i.size
+                        if( (x,y,width,height) != crop):
+                            c = i.crop(crop)
+                            c.save(base_path)
+                            c.close()
+                            (width, height) = c.size
+                            setPosition(emote, 'background-position', x, y)
+                            emote['width'] = width
+                            emote['height'] = height
+                    else:
+                        logger.warn('Emote: '+canonical_name(emote)+' is empty')
+                    i.close()
+            else:
+                if(emote['base_img_animation']):
+                    if(emote['hover_img_animation']):
+                        pass
+                    else:
+                        pass
+                else:
+                    if(emote['hover_img_animation']):
+                        pass
+                    else:
+                        pass
 
     def read_old_emotes(self):
         """
@@ -674,6 +757,7 @@ class RedditEmoteScraper():
         It will try to check if a emote has not changed and change the Last-Modified in the appropriate way.
         It will create self.old_emotes or set it to None.
         """
+        logger.info('Beginning read_old_emotes()')
         # XXX: Filename is defined in two locations now. Here and one level higher in scrape.py.
         FILENAME = path.join(self.output_dir, 'emotes_metadata')
 
@@ -724,6 +808,7 @@ class RedditEmoteScraper():
         self._extract_images_from_spritemaps(changed_emotes)
 
     def remove_broken_emotes(self):
+        logger.info('Beginning remove_broken_emotes()')
         erase = []
         beginning_of_time = datetime(1970,1,1)
         for broken_emote in self.broken_emotes:
@@ -739,7 +824,7 @@ class RedditEmoteScraper():
         self.emotes = [emote for emote in self.emotes if emote not in erase]
 
     def visually_dedupe_emotes(self):
-        logger.info('Beginning to visually dedupe emotes')
+        logger.info('Beginning visually_dedupe_emotes()')
         processed_emotes = []
         duplicates = []
         puzzle = pypuzzle.Puzzle()
@@ -784,6 +869,7 @@ class RedditEmoteScraper():
         self.emotes = [emote for emote in self.emotes if emote not in duplicates]
 
     def emote_post_preferance(self):
+        logger.info('Beginning emote_post_preferance()')
         '''A emote's first name will be used for posting. Some names are preferred over other names. We re-order the names here.'''
 
         # We push all the numbered names back. They are generally not very descriptive.
@@ -809,6 +895,7 @@ class RedditEmoteScraper():
             emote['names'] = descriptive_names + long_names
 
     def remove_garbage(self):
+        logger.info('Beginning remove_garbage()')
         for emote in self.emotes:
             if 'tags' in emote:
                 emote['tags'] = _remove_duplicates(emote['tags'])

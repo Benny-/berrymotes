@@ -34,6 +34,7 @@ pip install -r requirements.pip
 ## Running
 
 ```bash
+ulimit -n 8192
 python redditEmoteScraper.py
 ```
 

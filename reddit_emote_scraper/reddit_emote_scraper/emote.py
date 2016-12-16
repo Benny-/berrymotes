@@ -1,6 +1,7 @@
 
 from os.path import join, dirname
 
+import sys
 import logging
 
 logger = logging.getLogger(__name__)
@@ -44,25 +45,57 @@ def _convert_purealpha_to_black_alpha(img):
                 pixdata[x, y] = (0, 0, 0, 0)
     return img
 
-def _extract_single_image(emote, spritemap_img, position_key, width_key, height_key, autocrop):
-    spritemap_width = spritemap_img.size[0]
-    spritemap_height = spritemap_img.size[1]
+def calculateCrop(*args):
+    
+    crop_top = sys.maxint
+    crop_left = sys.maxint
+    crop_right = 0
+    crop_bottem = 0
+    
+    crop_valid = False
+    
+    for image in args:
+        
+        copy = image.copy()
+        
+        # Auto crop removes unnecessary transparency surrounding our image.
+        if copy.mode != "RGBA":
+            copy = copy.convert("RGBA")
+        
+        # The getbox() function expects a black border.
+        # It will return a dimension with as much black border gone as possible.
+        imageBox = _convert_purealpha_to_black_alpha(copy).getbbox()
+        if imageBox is not None:
+            crop_valid = True
+            crop_top = min(crop_top, imageBox[0])
+            crop_left = min(crop_left, imageBox[1])
+            crop_right = max(crop_right, imageBox[2])
+            crop_bottem = max(crop_bottem, imageBox[3])
+        copy.close()
+    if crop_valid:
+        return (crop_top, crop_left, crop_right, crop_bottem)
+    return None
 
-    x=0
-    y=0
-    width = spritemap_width
-    height = spritemap_height
+def setPosition(emote, position_key, x, y):
+    """
+    Saves the x and y integer positions on the spritemap to this emote.
+    
+    position_key determines if you are saving base or hover position.
+    """
+    if (x > 0 or y > 0):
+        emote[position_key] = ['-'+str(x)+'px', '-'+str(y)+'px']
+    elif position_key in emote:
+        del emote[position_key]
 
-    if 'width' in emote:
-        width = emote['width']
-    if 'height' in emote:
-        height = emote['height']
-
-    if width_key in emote:
-        width = emote[width_key]
-    if height_key in emote:
-        height = emote[height_key]
-
+def getPosition(emote, position_key, spritemap_width=None, spritemap_height=None, width=None, height=None):
+    """
+    Get the position of this emote on the spritemap
+    
+    Position_key determines if you are getting the base or hover position.
+    """
+    x = 0
+    y = 0
+    
     if position_key in emote:
         if len(emote[position_key]) > 0:
             raw_x = emote[position_key][0]
@@ -81,6 +114,27 @@ def _extract_single_image(emote, spritemap_img, position_key, width_key, height_
             # TODO: Potential unhandled edge case with positive percentage.
             if raw_y.endswith('%'):
                 y = height * y / 100
+    return (x, y)
+    
+
+def _extract_single_image(emote, spritemap_img, position_key, width_key, height_key):
+    spritemap_width = spritemap_img.size[0]
+    spritemap_height = spritemap_img.size[1]
+
+    width = spritemap_width
+    height = spritemap_height
+
+    if 'width' in emote:
+        width = emote['width']
+    if 'height' in emote:
+        height = emote['height']
+
+    if width_key in emote:
+        width = emote[width_key]
+    if height_key in emote:
+        height = emote[height_key]
+    
+    (x, y) = getPosition(emote, position_key, spritemap_width, spritemap_height, width, height)
 
     x = x % spritemap_width
     y = y % spritemap_height
@@ -115,41 +169,21 @@ def _extract_single_image(emote, spritemap_img, position_key, width_key, height_
         logger.warn("Emote: " + canonical_name(emote) + " has been cropped to prevent spritemap wrapping. Output possible incorrect if emote depended on wrapping.")
     
     cut_out = spritemap_img.crop((x, y, x + width, y + height))
-    if (autocrop):
-        # Auto crop removes unnecessary transparency surrounding our image.
-        if cut_out.mode != "RGBA":
-            cut_out = cut_out.convert("RGBA")
-        
-        # The getbox() function expects a black border.
-        # It will return a dimension with as much black border gone as possible.
-        imageBox = _convert_purealpha_to_black_alpha(cut_out.copy()).getbbox()
-        if imageBox is not None:
-            cut_out = cut_out.crop(imageBox)
-            (width, height) = cut_out.size
-            x += imageBox[0]
-            y += imageBox[1]
-        else:
-            logger.warn('Emote: '+canonical_name(emote)+' is empty')
     
     # We explicitly set the width and height values in the emote if it was missing.
     # This will make our output more consistent and makes it easier to process.
     emote[width_key] = int(width)
     emote[height_key] = int(height)
     
-    if (x > 0 or y > 0):
-        # We explicitly set the (hover-)background-position on the spritemap here.
-        # This will make our output more consistent and makes it easier to process.
-        # The values will be normalized to px.
-        emote[position_key] = ['-'+str(x)+'px', '-'+str(y)+'px']
-    elif position_key in emote:
-        # But we remove the position key if it yields no benefits.
-        # This might save a few bytes.
-        del emote[position_key]
+    # We explicitly set the normalized (hover-)background-position on the spritemap here.
+    # This will make our output more consistent and makes it easier to process.
+    # The values will be normalized to px.
+    setPosition(emote, position_key, x, y)
     
     return cut_out
 
-def extract_single_image(emote, spritemap_img, autocrop=True):
-    return _extract_single_image(emote, spritemap_img, 'background-position', 'width', 'height', autocrop)
+def extract_single_image(emote, spritemap_img):
+    return _extract_single_image(emote, spritemap_img, 'background-position', 'width', 'height')
 
 def has_hover(emote):
     
@@ -173,8 +207,8 @@ def has_hover(emote):
 
     return has_hover
 
-def extract_single_hover_image(emote, spritemap_img, autocrop=False):
-    return _extract_single_image(emote, spritemap_img, 'hover-background-position', 'hover-width', 'hover-height', autocrop)
+def extract_single_hover_image(emote, spritemap_img):
+    return _extract_single_image(emote, spritemap_img, 'hover-background-position', 'hover-width', 'hover-height')
 
 def friendly_name(emote):
     '''
