@@ -35,7 +35,7 @@ scraper.broken_emotes = broken_emotes
 scraper.emote_info = emote_info
 scraper.rate_limit_lock = TokenBucket(15, 30)
 
-parser = argparse.ArgumentParser(description='Scrape emoticons from reddit.com\'s subreddits')
+parser = argparse.ArgumentParser(description='Scrape emoticons from reddit.com\'s subreddits. Outputs them as json and a load of cut-out images.')
 
 parser.add_argument(
     '-v', '--verbose',
@@ -65,9 +65,10 @@ parser.add_argument(
 
 parser.add_argument(
     '-c', '--css-fallback',
-    help="This directory will be used for css resolution if no css file could be found or downloaded in the session directory",
-    dest="css_fallback",
-    default="",
+    help="These directories will be used for css resolution if no css file could be found or downloaded in the session directory",
+    dest="css_fallbacks",
+    nargs='*',
+    default=[],
 )
 
 parser.add_argument(
@@ -136,6 +137,7 @@ parser.add_argument(
 args = parser.parse_args()
 logging.basicConfig(level=args.loglevel)
 
+scraper.css_fallbacks = args.css_fallbacks
 scraper.reddit_cache = args.reddit_cache
 scraper.session_cache = args.session_cache
 scraper.output_dir = args.output_dir

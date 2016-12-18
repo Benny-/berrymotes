@@ -58,6 +58,9 @@ logger = logging.getLogger(__name__)
 re_numbers = re.compile(r"\d+")
 re_slash = re.compile(r"/")
 
+class NoCSSFoundException(Exception):
+    pass
+
 def _remove_duplicates(seq):
     '''https://stackoverflow.com/questions/480214/how-do-you-remove-duplicates-from-a-list-in-python-whilst-preserving-order'''
     seen = set()
@@ -74,6 +77,7 @@ class RedditEmoteScraper():
         self.nsfw_subreddits = []
         self.broken_emotes = []
         self.emote_info = []
+        self.css_fallbacks = []
         self.reddit_cache = 'cache'
         self.session_cache = 'session_cache'
         self.output_dir = 'output'
@@ -298,6 +302,17 @@ class RedditEmoteScraper():
 
         return emotes
 
+    def _open_fallback_stylesheet(self, fallbacks, subreddit):
+        if(len(fallbacks) == 0):
+            raise NoCSSFoundException("Tried all fallback directories")
+        else:
+            css_subreddit_path = path.join(fallbacks.pop(0), subreddit.lower()) + '.css'
+            try:
+                return (open(css_subreddit_path), css_subreddit_path)
+            except IOError as ex:
+                self._open_fallback_stylesheet(fallbacks, subreddit)
+            
+
     def process_stylesheets(self):
         logger.info('Beginning process_stylesheets()')
 
@@ -308,7 +323,20 @@ class RedditEmoteScraper():
             try:
                 with open( css_subreddit_path, 'r' ) as f:
                     content = f.read().decode('utf-8')
-                    emotes = self._process_stylesheet(content, subreddit)
+            except IOError as ex:
+                logger.warn('Could not open stylesheet in session directory for ' + subreddit + ": " + str(ex))
+                if(len(self.css_fallbacks) != 0):
+                    try:
+                        (f, css_subreddit_path) = self._open_fallback_stylesheet(list(self.css_fallbacks), subreddit)
+                        with f as f:
+                            content = f.read().decode('utf-8')
+                    except NoCSSFoundException as ex:
+                        logger.warn('Could not open stylesheet in fallback directories for ' + subreddit + ": " + str(ex))
+                        content = None;
+            
+            if content is not None:
+                emotes = self._process_stylesheet(content, subreddit)
+                if emotes is not None:
                     modified_time = path.getmtime(css_subreddit_path)
                     for emote in emotes:
                         # The emote['last-modified'] is set to the last modify date.
@@ -323,8 +351,8 @@ class RedditEmoteScraper():
                         # possible date, as CSS header modify date is not reliable.
                         emote['Last-Modified'] = modified_time
                         self.emotes.append(emote)
-            except Exception as ex:
-                logger.warn('Not parsing stylesheet for ' + subreddit + ": " + str(ex))
+                else:
+                    logger.warn('Could not process stylesheet for ' + subreddit + ", it does not contain any emoticons")
 
     def _emote_image_source_equal(self, a, b):
         """
