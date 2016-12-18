@@ -220,7 +220,9 @@ class RedditEmoteScraper():
                                                    'height',
                                                    'background-image',
                                                    'background-position',
-                                                   'background', ]:
+                                                   'background',
+                                                   'background-size',
+                                                  ]:
                             name = declaration.name
                             if name == 'background-position':
                                 val = ['{}{}'.format(v.value, v.unit if v.unit else '') for v in declaration.value if
@@ -275,7 +277,13 @@ class RedditEmoteScraper():
                 if re.match(r'^(https?:)?//', emote['background']):
                     emote['background-image'] = emote['background']
                     del emote['background']
-
+            
+            if("background-size" in emote):
+                logger.warn("background-size found in emote {}. Removing width/height/background-size. See #8. Output possible incorrect.".format(canonical_name(emote)))
+                del emote['width']
+                del emote['height']
+                del emote['background-size']
+            
             if 'background-image' not in emote:
                 logger.warn('Discarding emotes (does not contain a background-image): {}'.format(emote['names'][0]))
                 validEmote = False

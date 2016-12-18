@@ -1,6 +1,6 @@
 # Reddit emote scraper
 
-Some subreddit have emotes. This script harvest emotes from multiple subreddits and outputs them in a directory as images and a json file.
+Some subreddits have emotes. This script harvest emotes from multiple subreddits and outputs them in a directory as images and a json file.
 
 ## External dependencies
 
