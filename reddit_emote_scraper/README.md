@@ -98,30 +98,14 @@ else
 	mkdir "${session_dir}"
 fi
 
-update_bpm()
-{
-    set -e
-	local path_to_bpm_git_repo=$1
-	
-	EXPECTED_ARGS=1
-	E_BADARGS=65
-	if [ $# -ne $EXPECTED_ARGS ]
-	then
-	  echo "Usage: `basename $0` path_to_bpm_git_repo"
-	  exit $E_BADARGS
-	fi
-
-    (
-	    cd "${path_to_bpm_git_repo}"
-	    git pull
-	    git restore-mtime # This is a git extension. Download it using "sudo apt-get install git-restore-mtime"
-	)
-}
-
-update_bpm "${bpm_git_root}"
+(
+    cd "${bpm_git_root}"
+    git pull
+    git restore-mtime # This is a git extension. Download it using "sudo apt-get install git-restore-mtime"
+)
 
 source ../pyenv/bin/activate;
-python -O ../reddit_emote_scraper/redditEmoteScraper
+python -O ../reddit_emote_scraper/redditEmoteScraper \
             --debug \
             --download-css \
             --css-fallback "${bpm_git_root}/minified-css" \
