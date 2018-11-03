@@ -279,6 +279,14 @@ subreddits = [
     'ZephyrBreeze',
     'hithrocemotes',
     'thunderlane',
+    'dinkymotes',
+    'KingEmotesII',
+    'KingEmotesIII',
+    'Marshmallow',
+    'Pony_irl',
+    'Somnambula',
+    'TempestShadow',
+    'Twistarlight',
 ]
 
 # Emotes which are broken should be placed here.
