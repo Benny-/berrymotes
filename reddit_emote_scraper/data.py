@@ -271,6 +271,14 @@ subreddits = [
     'shymotes',
     'starlightglimmer',
     'sunburst',
+    'floofingandsqueaking',
+    'HoomanMotes',
+    'katiemotes',
+    'ponymotesarchive',
+    'SillyNumptie',
+    'ZephyrBreeze',
+    'hithrocemotes',
+    'thunderlane',
 ]
 
 # Emotes which are broken should be placed here.
