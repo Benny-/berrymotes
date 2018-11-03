@@ -147,7 +147,6 @@ if(args.berrytube_tags):
     scraper.download_bt_tags()
 if(args.bpm_tags):
     scraper.download_bpm_tags()
-scraper.login_to_reddit()
 if(args.cssdownload):
     scraper.fetch_css()
 scraper.process_stylesheets()

@@ -104,7 +104,7 @@ class RedditEmoteScraper():
             shutil.rmtree(get_explode_directory(self.output_dir, emote, hover=False))
         except:
             pass
-            
+
         try:
             shutil.rmtree(get_explode_directory(self.output_dir, emote, hover=True))
         except:
@@ -133,14 +133,6 @@ class RedditEmoteScraper():
         if not os.path.exists(download_location):
             with open(download_location, "w") as f:
                 f.write(self._requests.get("https://ponymotes.net/bpm/bpm-resources.js").text)
-
-    def login_to_reddit(self):
-        logger.info('Beginning login_to_reddit()')
-
-        if self.user and self.password:
-            body = {'user': self.user, 'passwd': self.password, "rem": False}
-            self.rate_limit_lock and self.rate_limit_lock.acquire()
-            self._requests.post('http://www.reddit.com/api/login', body)
 
     def fetch_css(self):
         logger.info('Beginning fetch_css()')
@@ -277,13 +269,13 @@ class RedditEmoteScraper():
                 if re.match(r'^(https?:)?//', emote['background']):
                     emote['background-image'] = emote['background']
                     del emote['background']
-            
+
             if("background-size" in emote):
                 logger.warn("background-size found in emote {}. Removing width/height/background-size. See #8. Output possible incorrect.".format(canonical_name(emote)))
                 del emote['width']
                 del emote['height']
                 del emote['background-size']
-            
+
             if 'background-image' not in emote:
                 logger.warn('Discarding emotes (does not contain a background-image): {}'.format(emote['names'][0]))
                 validEmote = False
@@ -319,7 +311,7 @@ class RedditEmoteScraper():
                 return (open(css_subreddit_path), css_subreddit_path)
             except IOError as ex:
                 self._open_fallback_stylesheet(fallbacks, subreddit)
-            
+
 
     def process_stylesheets(self):
         logger.info('Beginning process_stylesheets()')
@@ -341,7 +333,7 @@ class RedditEmoteScraper():
                     except NoCSSFoundException as ex:
                         logger.warn('Could not open stylesheet in fallback directories for ' + subreddit + ": " + str(ex))
                         content = None;
-            
+
             if content is not None:
                 emotes = self._process_stylesheet(content, subreddit)
                 if emotes is not None:
@@ -423,7 +415,7 @@ class RedditEmoteScraper():
         except:
             logger.warn("Could not open bt-tags.json")
             return
-        
+
         for emote in self.emotes:
             for name in emote['names']:
 
@@ -583,7 +575,7 @@ class RedditEmoteScraper():
             else:
                 extracted_single_image = extract_single_image(emote, background_image)
             background_image.close()
-            
+
             if cmp(background_image.size, extracted_single_image.size) != 0:
                 extracted_single_image.save(frame_path)
             else:
@@ -605,12 +597,12 @@ class RedditEmoteScraper():
         animation_file = os.path.join(explode_dir, 'animation.xml')
         with open(animation_file, 'r') as f:
             animation_xml = etree.parse(f).getroot()
-        
+
         if(hover):
             image_path = get_single_image_path(self.output_dir, emote, True)
         else:
             image_path = get_single_image_path(self.output_dir, emote, False)
-        
+
         args = []
         args = args + ['--force', '-o', image_path]
         for frame_xml in animation_xml:
@@ -623,7 +615,7 @@ class RedditEmoteScraper():
 
     def _handle_background_for_emote(self, emote, background_image_path, background_image):
         extracted_single_image = extract_single_image(emote, background_image)
-        
+
         if not os.path.exists(os.path.dirname(get_single_image_path(self.output_dir, emote))):
             os.makedirs(os.path.dirname(get_single_image_path(self.output_dir, emote)))
 
@@ -665,13 +657,13 @@ class RedditEmoteScraper():
             if not same_as_spritemap:
                 with open(get_single_hover_image_path(self.output_dir, emote), 'wb') as f:
                     extracted_single_hover_image.save(f)
-        
+
         if same_as_spritemap:
             shutil.copyfile(hover_background_image_path, get_single_hover_image_path(self.output_dir, emote, hover_background_image.format))
             shutil.copystat(hover_background_image_path, get_single_hover_image_path(self.output_dir, emote))
 
     def _extract_images_from_spritemaps(self, emotes):
-        
+
         def is_apng(image_data):
             return 'acTL' in image_data[0:image_data.find('IDAT')]
 
@@ -689,7 +681,7 @@ class RedditEmoteScraper():
             animated = False
             if is_apng(background_image_data):
                 animated = True;
-            
+
             background_image = Image.open(open(background_image_path, 'rb'))
             for emote in emote_group:
                 emote['base_img_animation'] = animated
@@ -700,7 +692,7 @@ class RedditEmoteScraper():
 
         key_func = lambda e: e.get('hover-background-image')
         for image_url, emote_group in itertools.groupby(sorted(emotes, key=key_func), key_func):
-            
+
             if not image_url:
                 continue
 
@@ -712,7 +704,7 @@ class RedditEmoteScraper():
             animated = False
             if is_apng(hover_background_image_data):
                 animated = True;
-            
+
             hover_background_image = Image.open(open(hover_background_image_path, 'rb'))
             for emote in emote_group:
                 if(animated):
@@ -852,9 +844,9 @@ class RedditEmoteScraper():
             for emote in self.emotes:
                 if(canonical_name(emote) == broken_emote['canonical_name']):
                     erase.append(emote)
-                    
+
                     # Consider calling self._remove_images_emote(emote) here to remove the images associated with the emote
-                    
+
                     if(emote['Last-Modified'] > marked_on_utc_seconds):
                         logger.warn('Emote: ' + canonical_name(emote) + ' is marked for removal, but has a modify date after the mark date. Please review this emote for re-approval into the emote pool.')
         self.emotes = [emote for emote in self.emotes if emote not in erase]
