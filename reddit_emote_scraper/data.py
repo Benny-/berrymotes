@@ -287,6 +287,8 @@ subreddits = [
     'Somnambula',
     'TempestShadow',
     'Twistarlight',
+    'deepfriedmotes',
+    'emotestories',
 ]
 
 # Emotes which are broken should be placed here.
