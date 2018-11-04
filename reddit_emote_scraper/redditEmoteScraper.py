@@ -144,7 +144,7 @@ scraper.output_dir = args.output_dir
 
 start = time.time()
 if(args.berrytube_tags):
-    scraper.download_bt_tags()
+    scraper.download_bt_v2_tags()
 if(args.bpm_tags):
     scraper.download_bpm_tags()
 if(args.cssdownload):
@@ -152,6 +152,7 @@ if(args.cssdownload):
 scraper.process_stylesheets()
 scraper.dedupe_emotes()
 scraper.add_bt_tags()
+scraper.add_bt_v2_tags()
 scraper.add_bpm_tags()
 scraper.download_images()
 scraper.extract_images_from_spritemaps()

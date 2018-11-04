@@ -120,12 +120,12 @@ class RedditEmoteScraper():
         keeper['tags'] = keeper.get('tags', []) + goner.get('tags', [])
         goner['names'] = []
 
-    def download_bt_tags(self):
+    def download_bt_v2_tags(self):
         logger.info('Beginning download_bt_tags()')
-        download_location = os.path.join(self.session_cache, "bt-tags.json")
+        download_location = os.path.join(self.session_cache, "bt-tags.v2.json")
         if not os.path.exists(download_location):
             with open(download_location, "w") as f:
-                f.write(self._requests.get("http://berrymotes.com/assets/data.js").text)
+                f.write(self._requests.get("https://cdn.berrytube.tv/sha1/zu5qdzSDZFLN6QV-VHMwKOwstqI/berrymotes/data/berrymotes_json_data.v2.json").text)
 
     def download_bpm_tags(self):
         logger.info('Beginning download_bpm_tags()')
@@ -430,6 +430,34 @@ class RedditEmoteScraper():
                         emote['tags'].extend(k for k, v in tag_data['tags'].iteritems() if v['score'] >= 1)
                         if tag_data.get('specialTags'):
                             emote['tags'].extend(tag_data['specialTags'])
+
+    def add_bt_v2_tags(self):
+        logger.info('Beginning add_bt_tags()')
+        bt_emotes = None
+        try:
+            with open(os.path.join(self.session_cache, "bt-tags.v2.json")) as f:
+                bt_emotes = json.load(f)
+        except:
+            logger.warn("Could not open bt-tags.v2.json")
+            return
+            
+        bt_name_tag_map = {}
+        
+        for bt_emote in bt_emotes:
+            if 'tags' in bt_emote:
+                for name in bt_emote['names']:
+                    bt_name_tag_map[name] = bt_emote['tags']
+        
+        for emote in self.emotes:
+            for name in emote['names']:
+            
+                if 'name' in bt_name_tag_map:
+                    bt_tags = bt_name_tag_map[name]
+
+                    if 'tags' not in emote:
+                        emote['tags'] = []
+                    logger.debug('Tagging: {} with {}'.format(name, bt_tags))
+                    emote['tags'].extend(bt_tags)
 
     def add_bpm_tags(self):
         logger.info('Beginning add_bpm_tags()')
