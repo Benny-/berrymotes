@@ -10,7 +10,7 @@ http://pillow.readthedocs.org/en/latest/installation.html#external-libraries
 
 External dependencies for pypuzzle:
 ```bash
-sudo apt-get install libgd2-xpm-dev libpuzzle-dev
+sudo apt-get install libgd2-dev libpuzzle-dev
 ```
 
 External dependencies for python lxml:
@@ -34,7 +34,7 @@ pip install -r requirements.pip
 ## Running
 
 ```bash
-ulimit -n 8192 # Increase the open file descriptor limit
+ulimit -n 4096 # Increase the open file descriptor limit
 python redditEmoteScraper.py
 ```
 
@@ -88,7 +88,7 @@ session_dir="session_archive/session_$(date --utc --iso-8601)"
 output_dir="output"
 bpm_git_root="bpm"
 
-ulimit -n 8192
+ulimit -Sn 4096
 
 if [ -d ${session_dir} ]
 then
