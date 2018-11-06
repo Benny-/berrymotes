@@ -256,12 +256,6 @@ class RedditEmoteScraper():
                 emote['nsfw'] = True
             emote['sr'] = subreddit
 
-            # Sometimes people make css errors, fix those.
-            if 'background-image' not in emote and 'background' in emote:
-                if re.match(r'^(https?:)?//', emote['background']):
-                    emote['background-image'] = emote['background']
-                    del emote['background']
-
             validEmote = True
 
             # Sometimes people make css errors, fix those.
@@ -664,14 +658,11 @@ class RedditEmoteScraper():
         if has_hover(emote) and 'hover-background-image' not in emote:
             if emote['base_img_animation']:
                 emote['hover_img_animation'] = True
-                same_as_spritemap = self._explode_emote(emote, background_image_path, hover=True)
-                self._reassemble_emote_png(emote, hover=True)
             else:
                 emote['hover_img_animation'] = False
-                same_as_spritemap = cmp(background_image.size, extracted_single_image.size) == 0
-                assert same_as_spritemap is False # A hover can never be the same as the spritemap, as the base image shares the spritemap
-                with open(get_single_hover_image_path(self.output_dir, emote), 'wb') as f:
-                    extracted_single_image.save(f)
+                
+            same_as_spritemap = self._handle_hover_background_for_emote(emote, background_image_path, background_image)
+            assert same_as_spritemap is False # A hover can never be the same as the spritemap, as the base image shares the spritemap
 
     def _handle_hover_background_for_emote(self, emote, hover_background_image_path, hover_background_image):
         extracted_single_hover_image = extract_single_hover_image(emote, hover_background_image)
@@ -689,6 +680,8 @@ class RedditEmoteScraper():
         if same_as_spritemap:
             shutil.copyfile(hover_background_image_path, get_single_hover_image_path(self.output_dir, emote, hover_background_image.format))
             shutil.copystat(hover_background_image_path, get_single_hover_image_path(self.output_dir, emote))
+
+        return same_as_spritemap
 
     def _extract_images_from_spritemaps(self, emotes):
 
