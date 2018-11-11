@@ -289,6 +289,7 @@ subreddits = [
     'Twistarlight',
     'deepfriedmotes',
     'emotestories',
+    'WarKittensEmotes',
 ]
 
 # Emotes which are broken should be placed here.
