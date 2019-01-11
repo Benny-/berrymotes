@@ -98,13 +98,19 @@ def getPosition(emote, position_key, spritemap_width=None, spritemap_height=None
     
     if position_key in emote:
         if len(emote[position_key]) > 0:
-            raw_x = emote[position_key][0]
-            x = int(raw_x.strip('-').strip('px').strip('%'))
-            if '-' not in raw_x and '%' not in raw_x:
-                x = spritemap_width - x
-            # TODO: Potential unhandled edge case with positive percentage.
-            if raw_x.endswith('%'):
-                x = width * x / 100
+            # I honestly have no idea what center means in this context.
+            # Assuming it is top left seems to work
+            if emote[position_key][0] == 'center':
+                x = 0
+                y = 0
+            else:
+                raw_x = emote[position_key][0]
+                x = int(raw_x.strip('-').strip('px').strip('%'))
+                if '-' not in raw_x and '%' not in raw_x:
+                    x = spritemap_width - x
+                # TODO: Potential unhandled edge case with positive percentage.
+                if raw_x.endswith('%'):
+                    x = width * x / 100
 
         if len(emote[position_key]) > 1:
             raw_y = emote[position_key][1]
@@ -114,6 +120,7 @@ def getPosition(emote, position_key, spritemap_width=None, spritemap_height=None
             # TODO: Potential unhandled edge case with positive percentage.
             if raw_y.endswith('%'):
                 y = height * y / 100
+    
     return (x, y)
     
 
